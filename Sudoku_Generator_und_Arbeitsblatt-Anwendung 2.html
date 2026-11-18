@@ -1,0 +1,3135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="tool">
+  <meta name="design-style" content="haven">
+  <title>Sudoku-Generator &amp; Arbeitsblatt-Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* Haven Style Tokens */
+      --background: #f5f6f5;
+      --surface-container-low: #ffffff;
+      --surface-container: #e3ebe2;
+      --surface-container-high: #dbe2dd;
+
+      /* Ink */
+      --on-surface: #23272a;
+      --on-surface-variant: #5c6468;
+
+      /* Rules */
+      --outline: #c9d0cc;
+      --outline-variant: #dde2df;
+
+      /* Accents */
+      --primary: #3c5a6e;
+      --on-primary: #ffffff;
+      --primary-container: #e2e9ee;
+      --on-primary-container: #2a4152;
+      --secondary: #4f6b53;
+      --tertiary: #5f7c63;
+      --error: #a63d32;
+      --on-error: #ffffff;
+
+      /* Data series */
+      --data-1: #3c5a6e;
+      --data-2: #5f7c63;
+      --data-3: #a8694a;
+      --data-4: #8a7a68;
+      --data-context: #c3cac6;
+
+      /* Fonts */
+      --font-headline: 'Outfit', sans-serif;
+      --font-body: 'Hanken Grotesk', sans-serif;
+      --font-label: 'Outfit', sans-serif;
+
+      /* Shape */
+      --rounded: 0.375rem;
+      --rounded-lg: 0.5rem;
+      --rounded-full: 9999px;
+
+      /* Haven Effects */
+      --hairline: 1px solid var(--outline-variant);
+      --hairline-control: 1px solid var(--outline);
+      --elevation: none;
+
+      /* Shared Semantic & UI Tokens */
+      --positive: #2e6041;
+      --positive-bg: #e7f0ea;
+      --error-bg: #f8e8e6;
+      --warning: #8a5624;
+      --warning-bg: #f7efe5;
+      --focus: var(--primary);
+      --backdrop: rgba(35, 39, 42, 0.48);
+
+      /* Sudoku Grid & Worksheet Tokens */
+      --cell-given-bg: #f1f3f2;
+      --cell-peer-bg: #f2f5f7;
+      --cell-same-val-bg: #e8eef2;
+      --grid-border-strong: #23272a;
+      --grid-border-thin: #c6cdca;
+      --paper-bg: #ffffff;
+      --paper-ink: #1a1d1f;
+      --paper-muted: #575f64;
+      --paper-rule: #cfd6d2;
+      --paper-solution-ink: #2c5270;
+      --preview-backdrop: #dfe4e1;
+
+      /* Type Scale (Focused Tool) */
+      --display-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing Scale (4pt base) */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 6rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+
+      /* Dynamic Print Layout Vars */
+      --print-margin-mm: 12mm;
+      --print-instr-pt: 10pt;
+    }
+
+    /* Base Reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+    button, input, select, textarea { font-family: inherit; }
+
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-lg);
+    }
+    .app-shell * { min-width: 0; }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      padding-bottom: var(--space-lg);
+      border-bottom: var(--hairline);
+    }
+    .header-copy {
+      max-width: 65ch;
+    }
+    .headline {
+      font-family: var(--font-headline);
+      font-weight: 400;
+      font-size: var(--display-size);
+      letter-spacing: -0.02em;
+      line-height: 1.08;
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .headline strong {
+      font-weight: 600;
+    }
+    .caption-sage {
+      font-family: var(--font-body);
+      font-weight: 500;
+      color: var(--secondary);
+      margin: var(--space-xs) 0 0 0;
+    }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    /* Haven Hairline Panels */
+    .panel {
+      background: var(--surface-container-low);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      box-shadow: var(--elevation);
+      padding: var(--space-lg);
+    }
+    .section-heading {
+      font-family: var(--font-headline);
+      font-weight: 400;
+      font-size: var(--headline-size);
+      letter-spacing: -0.015em;
+      line-height: 1.15;
+      margin: 0 0 var(--space-md) 0;
+      color: var(--on-surface);
+    }
+    .section-heading strong {
+      font-weight: 600;
+    }
+
+    .label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      letter-spacing: 0.015em;
+      text-transform: none;
+      color: var(--on-surface-variant);
+      display: block;
+      margin-bottom: var(--space-xs);
+    }
+
+    /* Main Asymmetric Two-Column Tool Grid */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+
+    /* Controls & Form Elements */
+    .control-group {
+      display: grid;
+      gap: var(--space-md);
+    }
+    .control-block + .control-block {
+      padding-top: var(--space-md);
+      border-top: var(--hairline);
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-xs);
+    }
+
+    .chip-btn {
+      min-height: 44px;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+      border: var(--hairline-control);
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .chip-btn:hover {
+      background-color: var(--surface-container-high);
+    }
+    .chip-btn.is-selected {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .difficulty-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-xs);
+    }
+    .diff-btn {
+      min-height: 44px;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+      border: var(--hairline-control);
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .diff-btn:hover {
+      background-color: var(--surface-container-high);
+    }
+    .diff-btn.is-selected {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--primary);
+    }
+    .diff-title {
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .diff-meta {
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+    }
+    .diff-btn.is-selected .diff-meta {
+      color: var(--on-primary-container);
+    }
+
+    .input-row {
+      display: flex;
+      gap: var(--space-sm);
+      align-items: end;
+    }
+    .input-field-wrap {
+      flex: 1 1 auto;
+    }
+    .text-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 var(--space-md);
+      background-color: var(--surface-container-low);
+      border: var(--hairline-control);
+      border-radius: var(--rounded);
+      color: var(--on-surface);
+      font-size: 0.9375rem;
+      transition: border-color var(--dur-micro) var(--ease-out);
+    }
+    .text-input:focus {
+      border-color: var(--primary);
+    }
+    .field-error-text {
+      color: var(--error);
+      font-size: 0.8125rem;
+      margin-top: var(--space-xs);
+      display: none;
+    }
+    .field-error-text.is-visible {
+      display: block;
+    }
+
+    /* Buttons */
+    .btn {
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-label);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--on-primary-container);
+    }
+    .btn-secondary {
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      border-color: var(--outline);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--surface-container-high);
+    }
+    .btn-sage {
+      background-color: var(--surface-container);
+      color: var(--secondary);
+      border-color: var(--outline-variant);
+    }
+    .btn-sage:hover:not(:disabled) {
+      background-color: var(--surface-container-high);
+    }
+    .btn-full {
+      width: 100%;
+    }
+
+    /* Spec Summary Readout */
+    .spec-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      background-color: var(--background);
+      border-radius: var(--rounded);
+      border: var(--hairline);
+    }
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .spec-val {
+      font-family: var(--font-headline);
+      font-size: 1.125rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface);
+    }
+
+    /* Tag Pill */
+    .tag-sage {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--rounded-full);
+      background-color: var(--surface-container);
+      color: var(--secondary);
+      font-family: var(--font-label);
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+
+    /* Board Panel */
+    .board-panel {
+      display: grid;
+      gap: var(--space-md);
+    }
+    .board-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      padding-bottom: var(--space-md);
+      border-bottom: var(--hairline);
+    }
+    .board-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    /* Interactive DOM Sudoku Grid (for N <= 45) */
+    .board-stage {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    .sudoku-grid-wrap {
+      width: 100%;
+      max-width: 620px;
+      aspect-ratio: 1 / 1;
+      border: 2px solid var(--grid-border-strong);
+      background-color: var(--surface-container-low);
+      display: grid;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .s-cell {
+      border-right: 1px solid var(--grid-border-thin);
+      border-bottom: 1px solid var(--grid-border-thin);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-headline);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      cursor: pointer;
+      background-color: var(--surface-container-low);
+      color: var(--primary);
+      font-weight: 500;
+      padding: 0;
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    .s-cell.is-block-right {
+      border-right: 2px solid var(--grid-border-strong);
+    }
+    .s-cell.is-block-bottom {
+      border-bottom: 2px solid var(--grid-border-strong);
+    }
+    .s-cell.is-last-col {
+      border-right: none;
+    }
+    .s-cell.is-last-row {
+      border-bottom: none;
+    }
+    .s-cell.is-given {
+      background-color: var(--cell-given-bg);
+      color: var(--on-surface);
+      font-weight: 600;
+    }
+    .s-cell.is-peer {
+      background-color: var(--cell-peer-bg);
+    }
+    .s-cell.is-same-val {
+      background-color: var(--cell-same-val-bg);
+    }
+    .s-cell.is-selected {
+      background-color: var(--primary-container);
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+      z-index: 2;
+    }
+    .s-cell.is-solution-shown {
+      color: var(--secondary);
+      font-style: italic;
+    }
+    .s-cell.is-correct {
+      background-color: var(--positive-bg);
+      color: var(--positive);
+    }
+    .s-cell.is-wrong {
+      background-color: var(--error-bg);
+      color: var(--error);
+    }
+
+    /* Interactive Canvas Viewport (for N > 45, e.g. 50x50, 100x100, 1000x1000) */
+    .canvas-stage {
+      width: 100%;
+      max-width: 620px;
+      display: grid;
+      gap: var(--space-sm);
+    }
+    .canvas-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background-color: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+    }
+    .canvas-zoom-btns {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    .canvas-wrap {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border: 2px solid var(--grid-border-strong);
+      background-color: var(--surface-container-low);
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .canvas-wrap canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Touch Keypad */
+    .keypad-wrap {
+      width: 100%;
+      max-width: 620px;
+      display: grid;
+      gap: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: var(--hairline);
+    }
+    .keypad-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+      gap: var(--space-xs);
+    }
+    .key-btn {
+      min-height: 46px;
+      border-radius: var(--rounded);
+      border: var(--hairline-control);
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      font-family: var(--font-headline);
+      font-size: 1rem;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    .key-btn:hover {
+      background-color: var(--surface-container-high);
+    }
+    .key-btn.key-erase {
+      grid-column: span 2;
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+      color: var(--error);
+    }
+
+    .multidigit-entry {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      align-items: end;
+    }
+
+    /* Feedback Banner */
+    .feedback-banner {
+      padding: var(--space-md);
+      border-radius: var(--rounded);
+      border: var(--hairline);
+      background-color: var(--background);
+      color: var(--on-surface);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      font-size: 0.9375rem;
+    }
+    .feedback-banner.is-success {
+      background-color: var(--positive-bg);
+      border-color: var(--positive);
+      color: var(--positive);
+    }
+    .feedback-banner.is-error {
+      background-color: var(--error-bg);
+      border-color: var(--error);
+      color: var(--error);
+    }
+    .feedback-banner.is-warning {
+      background-color: var(--warning-bg);
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+
+    /* Modal Dialogs (Large Grid Warning & Print Preview) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: var(--backdrop);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-md);
+      z-index: 100;
+    }
+    .modal-backdrop.is-open {
+      display: flex;
+    }
+    .modal-dialog {
+      width: 100%;
+      max-width: 520px;
+      background-color: var(--surface-container-low);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      color: var(--warning);
+    }
+    .modal-title {
+      font-family: var(--font-headline);
+      font-size: var(--headline-size);
+      font-weight: 600;
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: var(--hairline);
+    }
+
+    /* Print Preview Overlay */
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: var(--preview-backdrop);
+      z-index: 120;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-overlay.is-open {
+      display: flex;
+    }
+    .preview-topbar {
+      background-color: var(--surface-container-low);
+      border-bottom: var(--hairline);
+      padding: var(--space-md) var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .preview-topbar-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .preview-controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: var(--space-md);
+      align-items: end;
+    }
+    .slider-control {
+      display: grid;
+      gap: var(--space-xs);
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: var(--space-sm);
+    }
+    .slider-value {
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--primary);
+      font-variant-numeric: tabular-nums;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+      height: 28px;
+    }
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-height: 44px;
+      cursor: pointer;
+      font-size: 0.9375rem;
+      color: var(--on-surface);
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+    }
+
+    /* Preview Scroll Stage & A4 Sheets */
+    .preview-stage {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xl);
+    }
+    .sheet-scaler {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .a4-sheet {
+      width: 794px;
+      height: 1123px;
+      background-color: var(--paper-bg);
+      color: var(--paper-ink);
+      border: 1px solid var(--paper-rule);
+      padding: 45px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      transform-origin: top center;
+      flex-shrink: 0;
+    }
+
+    /* Worksheet Typography (mirrors structured German Arbeitsblatt) */
+    .ws-header {
+      display: grid;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .ws-kicker {
+      font-family: var(--font-label);
+      font-size: 9pt;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--paper-muted);
+    }
+    .ws-title {
+      font-family: var(--font-headline);
+      font-size: 20pt;
+      font-weight: 600;
+      line-height: 1.15;
+      margin: 0;
+      color: var(--paper-ink);
+    }
+    .ws-meta {
+      font-size: 10pt;
+      color: var(--paper-muted);
+      margin: 0;
+    }
+    .ws-student-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 6px 0 8px 0;
+      border-bottom: 1px solid var(--paper-rule);
+      font-size: 10pt;
+      color: var(--paper-ink);
+    }
+    .ws-student-field {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      flex: 1 1 auto;
+    }
+    .ws-student-line {
+      flex: 1 1 auto;
+      border-bottom: 1px solid var(--paper-muted);
+      min-width: 90px;
+      height: 14px;
+    }
+    .ws-instructions {
+      padding: 8px 12px;
+      background-color: var(--background);
+      border-left: 3px solid var(--primary);
+      border-radius: 2px;
+      font-size: var(--print-instr-pt);
+      line-height: 1.38;
+      color: var(--paper-ink);
+    }
+    .ws-instructions-title {
+      font-weight: 600;
+      margin: 0 0 4px 0;
+      font-size: inherit;
+    }
+    .ws-instructions ol {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 2px;
+    }
+    .ws-instructions p {
+      margin: 0;
+    }
+
+    .ws-grid-area {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      padding: 8px 0;
+      overflow: hidden;
+    }
+    .ws-grid-box {
+      border: 2px solid var(--paper-ink);
+      display: grid;
+      overflow: hidden;
+      background-color: var(--paper-bg);
+    }
+    .ws-cell {
+      border-right: 1px solid var(--grid-border-thin);
+      border-bottom: 1px solid var(--grid-border-thin);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-headline);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      overflow: hidden;
+    }
+    .ws-cell.is-block-right {
+      border-right: 2px solid var(--paper-ink);
+    }
+    .ws-cell.is-block-bottom {
+      border-bottom: 2px solid var(--paper-ink);
+    }
+    .ws-cell.is-last-col {
+      border-right: none;
+    }
+    .ws-cell.is-last-row {
+      border-bottom: none;
+    }
+    .ws-cell.is-given {
+      font-weight: 700;
+      color: var(--paper-ink);
+    }
+    .ws-cell.is-solved {
+      font-weight: 400;
+      color: var(--paper-solution-ink);
+    }
+    .ws-canvas-grid {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ws-footer {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px solid var(--paper-rule);
+      font-family: var(--font-label);
+      font-size: 8.5pt;
+      color: var(--paper-muted);
+    }
+
+    /* Footer note */
+    .app-footer {
+      padding-top: var(--space-md);
+      border-top: var(--hairline);
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 900px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .app-shell {
+        padding: var(--space-md);
+      }
+      .panel {
+        padding: var(--space-md);
+      }
+      .preset-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .preview-topbar {
+        padding: var(--space-sm) var(--space-md);
+      }
+      .preview-stage {
+        padding: var(--space-md);
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Print Media Layout (Strict 2-Page A4 WYSIWYG) */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      html, body {
+        background-color: var(--paper-bg) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        width: 210mm !important;
+      }
+      .app-shell,
+      .modal-backdrop,
+      .preview-topbar {
+        display: none !important;
+      }
+      .preview-overlay {
+        position: static !important;
+        display: block !important;
+        background: transparent !important;
+        overflow: visible !important;
+      }
+      .preview-stage {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+      }
+      .sheet-scaler {
+        display: block !important;
+        width: 210mm !important;
+        height: 296.5mm !important;
+        margin: 0 !important;
+        page-break-after: always;
+        break-after: page;
+      }
+      .sheet-scaler:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+      .a4-sheet {
+        width: 210mm !important;
+        height: 296.5mm !important;
+        transform: none !important;
+        border: none !important;
+        padding: var(--print-margin-mm) !important;
+        box-sizing: border-box !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="header-copy">
+        <h1 class="headline">Sudoku-Generator &amp; <strong>Arbeitsblatt-Studio</strong></h1>
+        <p class="caption-sage">Beliebige Rastergrößen direkt im Browser lösen oder als zweiblättriges Arbeitsblatt mit separatem Lösungsblatt drucken.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-primary" onclick="openPrintPreview()">
+          <i data-lucide="printer" aria-hidden="true"></i>
+          <span>AB-Druck &amp; Vorschau</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="workspace-grid">
+      <!-- Left Column: Configuration & Status -->
+      <aside class="panel control-group" aria-label="Raster- und Schwierigkeitseinstellungen">
+        <div>
+          <h2 class="section-heading">Raster &amp; <strong>Konfiguration</strong></h2>
+          <div class="spec-strip">
+            <div class="spec-item">
+              <span class="label">Rastergröße</span>
+              <span class="spec-val" id="spec-size">9×9</span>
+            </div>
+            <div class="spec-item">
+              <span class="label">Unterblöcke</span>
+              <span class="spec-val" id="spec-subgrid">3×3</span>
+            </div>
+            <div class="spec-item">
+              <span class="label">Felder gesamt</span>
+              <span class="spec-val" id="spec-cells">81</span>
+            </div>
+            <div class="spec-item">
+              <span class="label">Vorgaben</span>
+              <span class="spec-val" id="spec-clues">~65 %</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <span class="label">Schnellauswahl Rastergröße</span>
+          <div class="preset-grid" role="group" aria-label="Vordefinierte Rastergrößen">
+            <button type="button" class="chip-btn" data-size="4" onclick="selectPresetSize(4)">4×4</button>
+            <button type="button" class="chip-btn is-selected" data-size="9" onclick="selectPresetSize(9)">9×9</button>
+            <button type="button" class="chip-btn" data-size="16" onclick="selectPresetSize(16)">16×16</button>
+            <button type="button" class="chip-btn" data-size="20" onclick="selectPresetSize(20)">20×20</button>
+            <button type="button" class="chip-btn" data-size="25" onclick="selectPresetSize(25)">25×25</button>
+            <button type="button" class="chip-btn" data-size="36" onclick="selectPresetSize(36)">36×36</button>
+            <button type="button" class="chip-btn" data-size="40" onclick="selectPresetSize(40)">40×40</button>
+            <button type="button" class="chip-btn" data-size="50" onclick="selectPresetSize(50)">50×50</button>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <div class="input-row">
+            <div class="input-field-wrap">
+              <label class="label" for="custom-size-input">Freie Größe N (N×N, ohne Obergrenze)</label>
+              <input id="custom-size-input" class="text-input" type="number" min="2" step="1" value="9" onkeydown="handleCustomSizeKey(event)">
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="applyCustomSize()">Übernehmen</button>
+          </div>
+          <div id="custom-size-error" class="field-error-text" role="alert">Bitte eine ganze Zahl größer oder gleich 2 eingeben.</div>
+        </div>
+
+        <div class="control-block">
+          <span class="label">Schwierigkeitsgrad</span>
+          <div class="difficulty-grid" role="group" aria-label="Schwierigkeitsgrad">
+            <button type="button" class="diff-btn is-selected" data-diff="leicht" onclick="selectDifficulty('leicht')">
+              <span class="diff-title">Leicht</span>
+              <span class="diff-meta">~65 % Vorgaben</span>
+            </button>
+            <button type="button" class="diff-btn" data-diff="mittel" onclick="selectDifficulty('mittel')">
+              <span class="diff-title">Mittel</span>
+              <span class="diff-meta">~50 % Vorgaben</span>
+            </button>
+            <button type="button" class="diff-btn" data-diff="schwer" onclick="selectDifficulty('schwer')">
+              <span class="diff-title">Schwer</span>
+              <span class="diff-meta">~35 % Vorgaben</span>
+            </button>
+            <button type="button" class="diff-btn" data-diff="experte" onclick="selectDifficulty('experte')">
+              <span class="diff-title">Experte</span>
+              <span class="diff-meta">~25 % Vorgaben</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-block" style="display: grid; gap: var(--space-sm);">
+          <button type="button" class="btn btn-primary btn-full" onclick="regenerateCurrentPuzzle()">
+            <i data-lucide="refresh-cw" aria-hidden="true"></i>
+            <span>Neues Sudoku generieren</span>
+          </button>
+          <button type="button" class="btn btn-sage btn-full" onclick="openPrintPreview()">
+            <i data-lucide="file-text" aria-hidden="true"></i>
+            <span>Arbeitsblatt &amp; Lösungsblatt (PDF)</span>
+          </button>
+        </div>
+
+        <div class="control-block">
+          <span class="label">Bearbeitungsstand</span>
+          <div class="spec-strip">
+            <div class="spec-item">
+              <span class="label">Eingetragen</span>
+              <span class="spec-val" id="progress-filled">0 / 0</span>
+            </div>
+            <div class="spec-item">
+              <span class="label">Status</span>
+              <span class="spec-val" id="progress-status">Offen</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Column: Interactive Game Board -->
+      <section class="panel board-panel" aria-label="Interaktives Sudoku-Spielfeld">
+        <div class="board-toolbar">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm);">
+            <span class="tag-sage" id="board-subblock-tag">3×3 Unterblöcke</span>
+            <span class="label" id="selected-cell-label" style="margin: 0;">Feld anklicken oder per Tastatur wählen</span>
+          </div>
+          <div class="board-actions">
+            <button type="button" class="btn btn-primary" onclick="checkSolution()">
+              <i data-lucide="check-circle-2" aria-hidden="true"></i>
+              <span>Prüfen / Korrigieren</span>
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="giveHint()">
+              <i data-lucide="sparkles" aria-hidden="true"></i>
+              <span>Hinweis</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="toggle-solution-btn" onclick="toggleShowSolution()">
+              <i data-lucide="eye" aria-hidden="true"></i>
+              <span>Lösung anzeigen</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="reset-board-btn" onclick="resetUserEntries(this)">
+              <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+              <span>Zurücksetzen</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="feedback-banner" class="feedback-banner" role="status" aria-live="polite">
+          <i data-lucide="info" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px;"></i>
+          <span id="feedback-text">Wähle ein leeres Feld aus und trage die passende Zahl über die Tastatur oder das Tastenfeld unten ein.</span>
+        </div>
+
+        <div class="board-stage">
+          <!-- DOM Grid for N <= 45 -->
+          <div id="dom-grid-container" class="sudoku-grid-wrap" role="grid" aria-label="Sudoku-Raster"></div>
+
+          <!-- Canvas Viewport for N > 45 -->
+          <div id="canvas-stage" class="canvas-stage" style="display: none;">
+            <div class="canvas-controls">
+              <span class="label" id="canvas-zoom-label" style="margin: 0;">Großraster-Modus · Zoom: 100 %</span>
+              <div class="canvas-zoom-btns">
+                <button type="button" class="btn btn-secondary" onclick="adjustCanvasZoom(0.6)" aria-label="Herauszoomen">−</button>
+                <button type="button" class="btn btn-secondary" onclick="resetCanvasView()">Übersicht</button>
+                <button type="button" class="btn btn-secondary" onclick="adjustCanvasZoom(1.8)" aria-label="Hineinzoomen">+</button>
+              </div>
+            </div>
+            <div class="canvas-wrap" id="canvas-wrap">
+              <canvas id="sudoku-canvas"></canvas>
+            </div>
+            <p class="label" style="margin: 0;">Tipp: Zoomen und ziehen zum Verschieben, kurzes Antippen wählt ein Feld zum Bearbeiten.</p>
+          </div>
+
+          <!-- Adaptive Touch Keypad -->
+          <div class="keypad-wrap" id="keypad-wrap">
+            <div class="keypad-header">
+              <span class="label" style="margin: 0;" id="keypad-title">Eingabe-Tastenfeld (1 bis 9)</span>
+              <span class="label" style="margin: 0;" id="keypad-active-hint">Aktives Feld: –</span>
+            </div>
+            <div id="keypad-buttons" class="keypad-grid"></div>
+            <div id="multidigit-entry" class="multidigit-entry" style="display: none;">
+              <div class="input-field-wrap">
+                <label class="label" for="direct-cell-input">Zahl für markiertes Feld eingeben</label>
+                <input id="direct-cell-input" class="text-input" type="number" min="1" step="1" onkeydown="handleDirectCellKey(event)">
+              </div>
+              <button type="button" class="btn btn-primary" onclick="applyDirectCellInput()">Eintragen</button>
+              <button type="button" class="btn btn-secondary" onclick="clearSelectedCell()">Feld leeren</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="app-footer">
+      <span>Jedes generierte Raster besitzt eine mathematisch gültige Unterblock-Struktur R×C = N.</span>
+      <span>Blatt 1: Arbeitsblatt &amp; Anweisungen · Blatt 2: Separates Lösungsblatt</span>
+    </footer>
+  </main>
+
+  <!-- Large Grid Warning Modal (> 40x40) -->
+  <div id="large-grid-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="large-modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <i data-lucide="alert-triangle" aria-hidden="true"></i>
+        <h2 id="large-modal-title" class="modal-title">Hinweis zur übergroßen Rastergröße</h2>
+      </div>
+      <p id="large-modal-message" style="margin: 0;">
+        Raster größer als 40×40 enthalten sehr viele Felder. Die Darstellung der Kästchen und Zahlen wird auf dem Bildschirm sowie auf Standard-Papierformaten (A4/Letter) extrem klein ausfallen.
+      </p>
+      <div class="spec-strip">
+        <div class="spec-item">
+          <span class="label">Geplantes Raster</span>
+          <span class="spec-val" id="modal-pending-size">50×50</span>
+        </div>
+        <div class="spec-item">
+          <span class="label">Felder gesamt</span>
+          <span class="spec-val" id="modal-pending-cells">2.500</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="cancelLargeGrid()">Abbrechen</button>
+        <button type="button" class="btn btn-primary" onclick="confirmLargeGrid()">Trotzdem erstellen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Print Preview & Worksheet Studio Overlay -->
+  <div id="print-preview-overlay" class="preview-overlay" role="dialog" aria-modal="true" aria-labelledby="preview-dialog-title">
+    <div class="preview-topbar">
+      <div class="preview-topbar-head">
+        <div>
+          <h2 id="preview-dialog-title" class="section-heading" style="margin: 0;">Arbeitsblatt-<strong>Druckvorschau</strong></h2>
+          <span class="label" style="margin: 0;">Blatt 1 (Arbeitsblatt) und Blatt 2 (Lösungsblatt) werden dynamisch auf A4 skaliert — kein Umbruch, kein Abschneiden.</span>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn btn-secondary" onclick="exportWorksheetPng(1)">
+            <i data-lucide="download" aria-hidden="true"></i>
+            <span>Blatt 1 PNG</span>
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="exportWorksheetPng(2)">
+            <i data-lucide="download" aria-hidden="true"></i>
+            <span>Blatt 2 PNG</span>
+          </button>
+          <button type="button" class="btn btn-primary" onclick="triggerBrowserPrint()">
+            <i data-lucide="printer" aria-hidden="true"></i>
+            <span>Drucken / PDF speichern</span>
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="closePrintPreview()">
+            <i data-lucide="x" aria-hidden="true"></i>
+            <span>Schließen</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="preview-controls-grid">
+        <div class="slider-control">
+          <div class="slider-header">
+            <label class="label" for="margin-slider" style="margin: 0;">Seitenränder (Randabstand)</label>
+            <span class="slider-value" id="margin-value-label">12 mm</span>
+          </div>
+          <input id="margin-slider" type="range" min="5" max="25" step="1" value="12" oninput="handleMarginSlider(this.value)">
+        </div>
+
+        <div class="slider-control">
+          <div class="slider-header">
+            <label class="label" for="instr-font-slider" style="margin: 0;">Schriftgröße Anweisungen</label>
+            <span class="slider-value" id="instr-font-value-label">10 pt</span>
+          </div>
+          <input id="instr-font-slider" type="range" min="7.5" max="14" step="0.5" value="10" oninput="handleInstrFontSlider(this.value)">
+        </div>
+
+        <div class="input-field-wrap">
+          <label class="label" for="worksheet-title-input">Titel des Arbeitsblatts</label>
+          <input id="worksheet-title-input" class="text-input" type="text" value="Sudoku-Übungsblatt" oninput="handleWorksheetTitleChange(this.value)">
+        </div>
+
+        <div>
+          <span class="label">Kopfzeile</span>
+          <label class="checkbox-label" for="show-student-toggle">
+            <input id="show-student-toggle" type="checkbox" checked onchange="handleShowStudentToggle(this.checked)">
+            <span>Name &amp; Datum anzeigen</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-stage" id="preview-stage">
+      <!-- Page 1: Worksheet -->
+      <div class="sheet-scaler" id="scaler-page-1">
+        <article class="a4-sheet" id="sheet-page-1" aria-label="Blatt 1: Arbeitsblatt">
+          <div class="ws-header" id="ws-header-1">
+            <div class="ws-kicker">ARBEITSBLATT · BLATT 1</div>
+            <h3 class="ws-title" id="ws-title-1">Sudoku-Übungsblatt</h3>
+            <p class="ws-meta" id="ws-meta-1">Raster: 9×9 · Unterblöcke: 3×3 · Schwierigkeit: Leicht</p>
+            <div class="ws-student-row" id="ws-student-1">
+              <div class="ws-student-field"><strong>Name:</strong><span class="ws-student-line"></span></div>
+              <div class="ws-student-field" style="max-width: 190px;"><strong>Datum:</strong><span id="ws-date-1">18.11.2026</span></div>
+            </div>
+            <div class="ws-instructions" id="ws-instructions-1">
+              <p class="ws-instructions-title">Anweisungen zur Lösung</p>
+              <ol id="ws-instr-list">
+                <li>Fülle alle leeren Felder so mit den Zahlen von <strong>1 bis 9</strong> aus, dass jede Zahl in jeder <strong>Zeile</strong> genau einmal vorkommt.</li>
+                <li>Jede Zahl von <strong>1 bis 9</strong> darf in jeder <strong>Spalte</strong> genau einmal vorkommen.</li>
+                <li>Jeder fett umrandete <strong>3×3-Block</strong> muss alle Zahlen von <strong>1 bis 9</strong> genau einmal enthalten.</li>
+                <li>Nutze die vorgegebenen Zahlen als Startpunkte und trage pro Kästchen nur eine Zahl ein.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="ws-grid-area" id="ws-grid-area-1">
+            <div class="ws-grid-box" id="ws-grid-1"></div>
+          </div>
+
+          <div class="ws-footer" id="ws-footer-1">
+            <span id="ws-footer-left-1">Sudoku-Übungsblatt · 9×9 (Leicht)</span>
+            <span>Blatt 1 von 2 · Arbeitsblatt</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- Page 2: Separate Solution Sheet -->
+      <div class="sheet-scaler" id="scaler-page-2">
+        <article class="a4-sheet" id="sheet-page-2" aria-label="Blatt 2: Separates Lösungsblatt">
+          <div class="ws-header" id="ws-header-2">
+            <div class="ws-kicker">LÖSUNGSBLATT · SEPARATES EXTRA-BLATT</div>
+            <h3 class="ws-title" id="ws-title-2">Lösungsblatt: Sudoku-Übungsblatt</h3>
+            <p class="ws-meta" id="ws-meta-2">Raster: 9×9 · Unterblöcke: 3×3 · Schwierigkeit: Leicht</p>
+            <div class="ws-student-row" id="ws-student-2">
+              <div class="ws-student-field"><strong>Name:</strong><span class="ws-student-line"></span></div>
+              <div class="ws-student-field" style="max-width: 190px;"><strong>Datum:</strong><span id="ws-date-2">18.11.2026</span></div>
+            </div>
+            <div class="ws-instructions" id="ws-instructions-2">
+              <p class="ws-instructions-title">Hinweis zum Lösungsblatt</p>
+              <p>Dunkel fett gedruckte Zahlen entsprechen den Ausgangsvorgaben auf Blatt 1; farbige bzw. feiner gedruckte Zahlen zeigen die vollständige Lösung.</p>
+            </div>
+          </div>
+
+          <div class="ws-grid-area" id="ws-grid-area-2">
+            <div class="ws-grid-box" id="ws-grid-2"></div>
+          </div>
+
+          <div class="ws-footer" id="ws-footer-2">
+            <span id="ws-footer-left-2">Lösungsblatt zu „Sudoku-Übungsblatt“</span>
+            <span>Blatt 2 von 2 · Separates Lösungsblatt</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <api-shim></api-shim>
+  <script>
+    /* =========================================================================
+       State & Configuration
+    ========================================================================= */
+    const DIFFICULTY_CONFIG = {
+      leicht:  { label: `Leicht`,  clueRatio: 0.65, pctText: `~65 %` },
+      mittel:  { label: `Mittel`,  clueRatio: 0.50, pctText: `~50 %` },
+      schwer:  { label: `Schwer`,  clueRatio: 0.35, pctText: `~35 %` },
+      experte: { label: `Experte`, clueRatio: 0.25, pctText: `~25 %` }
+    };
+
+    const DOM_GRID_MAX_N = 45;
+    const EXPLICIT_MASK_MAX_N = 100;
+
+    let appState = {
+      size: 9,
+      difficulty: `leicht`,
+      seed: 20261118,
+      title: `Sudoku-Übungsblatt`,
+      printMarginMm: 12,
+      printInstrPt: 10,
+      showStudentRow: true,
+      userEntries: {}
+    };
+
+    let puzzleData = {
+      N: 9,
+      R: 3,
+      C: 3,
+      rowPerm: [],
+      colPerm: [],
+      symPerm: [],
+      explicitGivenMask: null,
+      totalGivens: 0,
+      cluePermille: 650
+    };
+
+    let uiState = {
+      selectedR: -1,
+      selectedC: -1,
+      digitBuffer: ``,
+      showSolution: false,
+      checkStatus: {},
+      pendingLargeSize: null,
+      previewOpen: false,
+      canvasZoom: 1,
+      canvasPanX: 0,
+      canvasPanY: 0,
+      isDraggingCanvas: false,
+      dragMoved: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      panStartX: 0,
+      panStartY: 0
+    };
+
+    /* =========================================================================
+       Seeded PRNG & Mathematical Sudoku Generator (Arbitrary N = R * C)
+    ========================================================================= */
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function shuffleArray(arr, rng) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+      }
+      return arr;
+    }
+
+    function getSubgridDims(n) {
+      let r = Math.floor(Math.sqrt(n));
+      while (r > 1 && n % r !== 0) {
+        r--;
+      }
+      return { R: r, C: n / r };
+    }
+
+    function hashCellMask(seed, r, c) {
+      let h = (seed ^ Math.imul(r + 1, 374761393) ^ Math.imul(c + 1, 668265263)) >>> 0;
+      h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+      h = (h ^ (h >>> 16)) >>> 0;
+      return h % 1000;
+    }
+
+    function buildPuzzle(N, difficultyKey, seed) {
+      const dims = getSubgridDims(N);
+      const R = dims.R;
+      const C = dims.C;
+      const rng = mulberry32(seed);
+      const diff = DIFFICULTY_CONFIG[difficultyKey] || DIFFICULTY_CONFIG.leicht;
+      const cluePermille = Math.round(diff.clueRatio * 1000);
+
+      // Build symbol permutation 0..N-1
+      const symPerm = new Int32Array(N);
+      for (let i = 0; i < N; i++) symPerm[i] = i;
+      shuffleArray(symPerm, rng);
+
+      // Permute bands (C bands of size R) and rows within each band
+      const bandOrder = [];
+      for (let b = 0; b < C; b++) bandOrder.push(b);
+      shuffleArray(bandOrder, rng);
+
+      const rowPerm = new Int32Array(N);
+      for (let b = 0; b < C; b++) {
+        const origBand = bandOrder[b];
+        const inner = [];
+        for (let i = 0; i < R; i++) inner.push(origBand * R + i);
+        shuffleArray(inner, rng);
+        for (let i = 0; i < R; i++) rowPerm[b * R + i] = inner[i];
+      }
+
+      // Permute stacks (R stacks of size C) and cols within each stack
+      const stackOrder = [];
+      for (let s = 0; s < R; s++) stackOrder.push(s);
+      shuffleArray(stackOrder, rng);
+
+      const colPerm = new Int32Array(N);
+      for (let s = 0; s < R; s++) {
+        const origStack = stackOrder[s];
+        const inner = [];
+        for (let j = 0; j < C; j++) inner.push(origStack * C + j);
+        shuffleArray(inner, rng);
+        for (let j = 0; j < C; j++) colPerm[s * C + j] = inner[j];
+      }
+
+      let explicitGivenMask = null;
+      let totalGivens = 0;
+
+      if (N <= EXPLICIT_MASK_MAX_N) {
+        const totalCells = N * N;
+        explicitGivenMask = new Uint8Array(totalCells);
+        const indices = new Int32Array(totalCells);
+        for (let i = 0; i < totalCells; i++) indices[i] = i;
+        shuffleArray(indices, rng);
+
+        const targetClues = Math.max(1, Math.round(totalCells * diff.clueRatio));
+        if (N <= 9 && totalCells <= 81) {
+          // Dig clues while maintaining uniqueness for 4x4..9x9
+          explicitGivenMask.fill(1);
+          let currentClues = totalCells;
+          const workGrid = new Int16Array(totalCells);
+          for (let r = 0; r < N; r++) {
+            for (let c = 0; c < N; c++) {
+              const origR = rowPerm[r];
+              const origC = colPerm[c];
+              const baseVal = (origR * C + Math.floor(origR / R) + origC) % N;
+              workGrid[r * N + c] = symPerm[baseVal] + 1;
+            }
+          }
+          const startTime = Date.now();
+          for (let k = 0; k < totalCells && currentClues > targetClues; k++) {
+            if (Date.now() - startTime > 70) break;
+            const idx = indices[k];
+            const saved = workGrid[idx];
+            workGrid[idx] = 0;
+            if (countSudokuSolutions(workGrid, N, R, C, 2) === 1) {
+              explicitGivenMask[idx] = 0;
+              currentClues--;
+            } else {
+              workGrid[idx] = saved;
+            }
+          }
+          // If uniqueness stopped slightly early on Experte, allow remaining removal down to target
+          for (let k = 0; k < totalCells && currentClues > targetClues; k++) {
+            const idx = indices[k];
+            if (explicitGivenMask[idx] === 1) {
+              explicitGivenMask[idx] = 0;
+              currentClues--;
+            }
+          }
+          totalGivens = currentClues;
+        } else {
+          for (let k = 0; k < targetClues; k++) {
+            explicitGivenMask[indices[k]] = 1;
+          }
+          totalGivens = targetClues;
+        }
+      } else {
+        totalGivens = Math.round(N * N * diff.clueRatio);
+      }
+
+      puzzleData = {
+        N,
+        R,
+        C,
+        rowPerm,
+        colPerm,
+        symPerm,
+        explicitGivenMask,
+        totalGivens,
+        cluePermille
+      };
+    }
+
+    function countSudokuSolutions(grid, N, R, C, limit) {
+      let bestIdx = -1;
+      let bestCands = null;
+      const total = N * N;
+
+      for (let idx = 0; idx < total; idx++) {
+        if (grid[idx] !== 0) continue;
+        const r = Math.floor(idx / N);
+        const c = idx % N;
+        const br = Math.floor(r / R) * R;
+        const bc = Math.floor(c / C) * C;
+        const used = new Uint8Array(N + 1);
+
+        for (let k = 0; k < N; k++) {
+          const v1 = grid[r * N + k];
+          if (v1) used[v1] = 1;
+          const v2 = grid[k * N + c];
+          if (v2) used[v2] = 1;
+        }
+        for (let dr = 0; dr < R; dr++) {
+          for (let dc = 0; dc < C; dc++) {
+            const v3 = grid[(br + dr) * N + (bc + dc)];
+            if (v3) used[v3] = 1;
+          }
+        }
+        const cands = [];
+        for (let v = 1; v <= N; v++) {
+          if (!used[v]) cands.push(v);
+        }
+        if (cands.length === 0) return 0;
+        if (!bestCands || cands.length < bestCands.length) {
+          bestIdx = idx;
+          bestCands = cands;
+          if (cands.length === 1) break;
+        }
+      }
+
+      if (bestIdx === -1) return 1;
+
+      let count = 0;
+      for (let i = 0; i < bestCands.length; i++) {
+        grid[bestIdx] = bestCands[i];
+        count += countSudokuSolutions(grid, N, R, C, limit - count);
+        if (count >= limit) {
+          grid[bestIdx] = 0;
+          return count;
+        }
+      }
+      grid[bestIdx] = 0;
+      return count;
+    }
+
+    function getSolutionValue(r, c) {
+      const { N, R, C, rowPerm, colPerm, symPerm } = puzzleData;
+      const origR = rowPerm[r];
+      const origC = colPerm[c];
+      const baseVal = (origR * C + Math.floor(origR / R) + origC) % N;
+      return symPerm[baseVal] + 1;
+    }
+
+    function isGivenCell(r, c) {
+      const { N, explicitGivenMask, cluePermille } = puzzleData;
+      if (explicitGivenMask) {
+        return explicitGivenMask[r * N + c] === 1;
+      }
+      return hashCellMask(appState.seed, r, c) < cluePermille;
+    }
+
+    function cellKey(r, c) {
+      return `${r},${c}`;
+    }
+
+    function getDisplayValue(r, c) {
+      if (isGivenCell(r, c)) return getSolutionValue(r, c);
+      const key = cellKey(r, c);
+      if (appState.userEntries[key]) return appState.userEntries[key];
+      if (uiState.showSolution) return getSolutionValue(r, c);
+      return 0;
+    }
+
+    /* =========================================================================
+       Persistence via Gemini Notebook Shim API
+    ========================================================================= */
+    async function persistState() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === `function`) {
+        try {
+          await window.notebookAppApi.setAppState({
+            size: appState.size,
+            difficulty: appState.difficulty,
+            seed: appState.seed,
+            title: appState.title,
+            printMarginMm: appState.printMarginMm,
+            printInstrPt: appState.printInstrPt,
+            showStudentRow: appState.showStudentRow,
+            userEntries: appState.userEntries
+          });
+        } catch (err) {
+          /* Ignore storage limits gracefully */
+        }
+      }
+    }
+
+    /* =========================================================================
+       Formatting Helpers
+    ========================================================================= */
+    function formatNum(num) {
+      return Number(num).toLocaleString(`de-DE`);
+    }
+
+    function getTodayFormatted() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, `0`);
+      const mm = String(now.getMonth() + 1).padStart(2, `0`);
+      const yyyy = now.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+
+    /* =========================================================================
+       UI Actions & Configuration Handlers (Hoisted function declarations)
+    ========================================================================= */
+    function selectPresetSize(n) {
+      const input = document.getElementById(`custom-size-input`);
+      if (input) input.value = n;
+      hideSizeError();
+      requestGridSizeChange(n);
+    }
+
+    function applyCustomSize() {
+      const input = document.getElementById(`custom-size-input`);
+      if (!input) return;
+      const val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 2) {
+        showSizeError(`Bitte eine ganze Zahl größer oder gleich 2 eingeben.`);
+        return;
+      }
+      hideSizeError();
+      requestGridSizeChange(val);
+    }
+
+    function handleCustomSizeKey(e) {
+      if (e.key === `Enter`) {
+        e.preventDefault();
+        applyCustomSize();
+      }
+    }
+
+    function showSizeError(msg) {
+      const el = document.getElementById(`custom-size-error`);
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add(`is-visible`);
+    }
+
+    function hideSizeError() {
+      const el = document.getElementById(`custom-size-error`);
+      if (el) el.classList.remove(`is-visible`);
+    }
+
+    function requestGridSizeChange(newSize) {
+      if (newSize > 40) {
+        uiState.pendingLargeSize = newSize;
+        const dims = getSubgridDims(newSize);
+        const modal = document.getElementById(`large-grid-modal`);
+        const sizeEl = document.getElementById(`modal-pending-size`);
+        const cellsEl = document.getElementById(`modal-pending-cells`);
+        const msgEl = document.getElementById(`large-modal-message`);
+        if (sizeEl) sizeEl.textContent = `${newSize}×${newSize}`;
+        if (cellsEl) cellsEl.textContent = formatNum(newSize * newSize);
+        if (msgEl) {
+          msgEl.textContent = `Raster größer als 40×40 (hier ${newSize}×${newSize} mit Unterblöcken ${dims.R}×${dims.C}) enthalten ${formatNum(newSize * newSize)} Kästchen. Die Darstellung der Zellen und Zahlen wird auf dem Bildschirm sowie auf A4-/Letter-Druckbögen extrem klein sein.${newSize > DOM_GRID_MAX_N ? ` Auf der Website wird automatisch die interaktive Zoom-/Canvas-Ansicht aktiviert.` : ``}`;
+        }
+        if (modal) modal.classList.add(`is-open`);
+        return;
+      }
+      commitNewPuzzle(newSize, appState.difficulty, true);
+    }
+
+    function cancelLargeGrid() {
+      uiState.pendingLargeSize = null;
+      const modal = document.getElementById(`large-grid-modal`);
+      if (modal) modal.classList.remove(`is-open`);
+      const input = document.getElementById(`custom-size-input`);
+      if (input) input.value = appState.size;
+    }
+
+    function confirmLargeGrid() {
+      const target = uiState.pendingLargeSize;
+      uiState.pendingLargeSize = null;
+      const modal = document.getElementById(`large-grid-modal`);
+      if (modal) modal.classList.remove(`is-open`);
+      if (target && target >= 2) {
+        commitNewPuzzle(target, appState.difficulty, true);
+      }
+    }
+
+    function selectDifficulty(diffKey) {
+      if (!DIFFICULTY_CONFIG[diffKey]) return;
+      commitNewPuzzle(appState.size, diffKey, true);
+    }
+
+    function regenerateCurrentPuzzle() {
+      commitNewPuzzle(appState.size, appState.difficulty, true);
+    }
+
+    function commitNewPuzzle(size, difficulty, newSeed) {
+      appState.size = size;
+      appState.difficulty = difficulty;
+      if (newSeed) {
+        appState.seed = Math.floor(Math.random() * 2147483000) + 1;
+      }
+      appState.userEntries = {};
+      uiState.selectedR = -1;
+      uiState.selectedC = -1;
+      uiState.digitBuffer = ``;
+      uiState.showSolution = false;
+      uiState.checkStatus = {};
+      uiState.canvasZoom = 1;
+      uiState.canvasPanX = 0;
+      uiState.canvasPanY = 0;
+
+      buildPuzzle(appState.size, appState.difficulty, appState.seed);
+      updateControlsUI();
+      renderActiveBoard();
+      renderKeypad();
+      updateProgressUI();
+      setFeedback(`info`, `Neues ${size}×${size}-Sudoku (${DIFFICULTY_CONFIG[difficulty].label}) bereit. Wähle ein Feld aus und starte.`);
+      persistState();
+    }
+
+    /* =========================================================================
+       Interactive Cell Selection & Value Entry
+    ========================================================================= */
+    function selectCell(r, c) {
+      if (r < 0 || r >= puzzleData.N || c < 0 || c >= puzzleData.N) return;
+      uiState.selectedR = r;
+      uiState.selectedC = c;
+      uiState.digitBuffer = ``;
+
+      const labelEl = document.getElementById(`selected-cell-label`);
+      const hintEl = document.getElementById(`keypad-active-hint`);
+      const given = isGivenCell(r, c);
+      if (labelEl) {
+        labelEl.textContent = `Zeile ${r + 1} · Spalte ${c + 1}${given ? ` (Vorgabe)` : ``}`;
+      }
+      if (hintEl) {
+        hintEl.textContent = `Aktives Feld: Z${r + 1}/S${c + 1}`;
+      }
+
+      const directInput = document.getElementById(`direct-cell-input`);
+      if (directInput) {
+        const cur = appState.userEntries[cellKey(r, c)] || ``;
+        directInput.value = given ? `` : cur;
+      }
+
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        updateDomCellHighlights();
+      } else {
+        drawInteractiveCanvas();
+      }
+    }
+
+    function enterNumberIntoSelected(val) {
+      const r = uiState.selectedR;
+      const c = uiState.selectedC;
+      if (r < 0 || c < 0) {
+        setFeedback(`warning`, `Bitte zuerst ein leeres Kästchen im Sudoku-Raster auswählen.`);
+        return;
+      }
+      if (isGivenCell(r, c)) {
+        setFeedback(`warning`, `Das Feld Zeile ${r + 1}, Spalte ${c + 1} ist eine feste Vorgabe und kann nicht überschrieben werden.`);
+        return;
+      }
+      if (val < 1 || val > puzzleData.N) {
+        setFeedback(`warning`, `Gültige Zahlen für dieses Raster liegen zwischen 1 und ${formatNum(puzzleData.N)}.`);
+        return;
+      }
+
+      const key = cellKey(r, c);
+      appState.userEntries[key] = val;
+      delete uiState.checkStatus[key];
+      uiState.showSolution = false;
+      updateSolutionToggleText();
+
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        refreshDomCellContent(r, c);
+        updateDomCellHighlights();
+      } else {
+        drawInteractiveCanvas();
+      }
+      updateProgressUI();
+      persistState();
+    }
+
+    function clearSelectedCell() {
+      const r = uiState.selectedR;
+      const c = uiState.selectedC;
+      if (r < 0 || c < 0 || isGivenCell(r, c)) return;
+      const key = cellKey(r, c);
+      delete appState.userEntries[key];
+      delete uiState.checkStatus[key];
+      uiState.digitBuffer = ``;
+
+      const directInput = document.getElementById(`direct-cell-input`);
+      if (directInput) directInput.value = ``;
+
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        refreshDomCellContent(r, c);
+        updateDomCellHighlights();
+      } else {
+        drawInteractiveCanvas();
+      }
+      updateProgressUI();
+      persistState();
+    }
+
+    function appendMultiDigit(digitStr) {
+      const r = uiState.selectedR;
+      const c = uiState.selectedC;
+      if (r < 0 || c < 0) {
+        setFeedback(`warning`, `Bitte zuerst ein leeres Feld im Raster auswählen.`);
+        return;
+      }
+      const nextStr = uiState.digitBuffer + digitStr;
+      let parsed = parseInt(nextStr, 10);
+      if (isNaN(parsed) || parsed > puzzleData.N) {
+        parsed = parseInt(digitStr, 10);
+        uiState.digitBuffer = parsed >= 1 && parsed <= puzzleData.N ? digitStr : ``;
+      } else {
+        uiState.digitBuffer = nextStr;
+      }
+      const directInput = document.getElementById(`direct-cell-input`);
+      if (directInput) directInput.value = uiState.digitBuffer;
+      if (parsed >= 1 && parsed <= puzzleData.N) {
+        enterNumberIntoSelected(parsed);
+      }
+    }
+
+    function applyDirectCellInput() {
+      const directInput = document.getElementById(`direct-cell-input`);
+      if (!directInput) return;
+      const val = parseInt(directInput.value, 10);
+      if (isNaN(val)) {
+        clearSelectedCell();
+        return;
+      }
+      enterNumberIntoSelected(val);
+    }
+
+    function handleDirectCellKey(e) {
+      if (e.key === `Enter`) {
+        e.preventDefault();
+        applyDirectCellInput();
+      }
+    }
+
+    /* =========================================================================
+       Validation ("Prüfen / Korrigieren"), Hints, Solution Toggle, Reset
+    ========================================================================= */
+    function checkSolution() {
+      const entries = Object.entries(appState.userEntries);
+      if (entries.length === 0) {
+        setFeedback(`warning`, `Es wurden noch keine eigenen Zahlen eingetragen. Fülle zuerst mindestens ein leeres Feld aus.`);
+        return;
+      }
+
+      let correctCount = 0;
+      let wrongCount = 0;
+      uiState.checkStatus = {};
+
+      for (let i = 0; i < entries.length; i++) {
+        const key = entries[i][0];
+        const val = entries[i][1];
+        const parts = key.split(`,`);
+        const r = parseInt(parts[0], 10);
+        const c = parseInt(parts[1], 10);
+        const expected = getSolutionValue(r, c);
+        if (val === expected) {
+          uiState.checkStatus[key] = `correct`;
+          correctCount++;
+        } else {
+          uiState.checkStatus[key] = `wrong`;
+          wrongCount++;
+        }
+      }
+
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        refreshAllDomCellStates();
+      } else {
+        drawInteractiveCanvas();
+      }
+
+      const totalEditable = (puzzleData.N * puzzleData.N) - puzzleData.totalGivens;
+      const remaining = Math.max(0, totalEditable - correctCount - wrongCount);
+      const statusEl = document.getElementById(`progress-status`);
+
+      if (wrongCount === 0 && remaining === 0) {
+        setFeedback(`success`, `Perfekt gelöst! Alle ${formatNum(correctCount)} eingetragenen Felder sind korrekt.`);
+        if (statusEl) statusEl.textContent = `Gelöst!`;
+      } else if (wrongCount === 0) {
+        setFeedback(`success`, `Bisher fehlerfrei: ${formatNum(correctCount)} richtig (grün markiert), noch ${formatNum(remaining)} offen.`);
+        if (statusEl) statusEl.textContent = `${correctCount} richtig`;
+      } else {
+        setFeedback(`error`, `Prüfung abgeschlossen: ${formatNum(correctCount)} richtig, ${formatNum(wrongCount)} fehlerhaft (rot markiert), noch ${formatNum(remaining)} offen.`);
+        if (statusEl) statusEl.textContent = `${wrongCount} Fehler`;
+      }
+    }
+
+    function giveHint() {
+      const N = puzzleData.N;
+      let targetR = uiState.selectedR;
+      let targetC = uiState.selectedC;
+
+      if (targetR >= 0 && targetC >= 0 && !isGivenCell(targetR, targetC)) {
+        const key = cellKey(targetR, targetC);
+        const expected = getSolutionValue(targetR, targetC);
+        if (appState.userEntries[key] !== expected) {
+          appState.userEntries[key] = expected;
+          uiState.checkStatus[key] = `correct`;
+          refreshAfterHint(targetR, targetC, expected);
+          return;
+        }
+      }
+
+      // Find first empty or incorrect cell (sampled search for huge grids)
+      const limit = N <= 50 ? N * N : 1000;
+      const rng = mulberry32(Date.now());
+      for (let attempt = 0; attempt < limit; attempt++) {
+        const r = N <= 50 ? Math.floor(attempt / N) : Math.floor(rng() * N);
+        const c = N <= 50 ? (attempt % N) : Math.floor(rng() * N);
+        if (isGivenCell(r, c)) continue;
+        const key = cellKey(r, c);
+        const expected = getSolutionValue(r, c);
+        if (appState.userEntries[key] !== expected) {
+          appState.userEntries[key] = expected;
+          uiState.checkStatus[key] = `correct`;
+          selectCell(r, c);
+          refreshAfterHint(r, c, expected);
+          return;
+        }
+      }
+
+      setFeedback(`success`, `Alle geprüften Felder sind bereits korrekt ausgefüllt.`);
+    }
+
+    function refreshAfterHint(r, c, val) {
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        refreshDomCellContent(r, c);
+        updateDomCellHighlights();
+      } else {
+        drawInteractiveCanvas();
+      }
+      updateProgressUI();
+      persistState();
+      setFeedback(`info`, `Hinweis eingetragen: Zeile ${r + 1}, Spalte ${c + 1} = ${val}.`);
+    }
+
+    function toggleShowSolution() {
+      uiState.showSolution = !uiState.showSolution;
+      updateSolutionToggleText();
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        for (let r = 0; r < puzzleData.N; r++) {
+          for (let c = 0; c < puzzleData.N; c++) {
+            refreshDomCellContent(r, c);
+          }
+        }
+      } else {
+        drawInteractiveCanvas();
+      }
+      setFeedback(`info`, uiState.showSolution ? `Vollständige Lösung eingeblendet (grün/kursiv).` : `Lösungsvorschau ausgeblendet.`);
+    }
+
+    function updateSolutionToggleText() {
+      const btn = document.getElementById(`toggle-solution-btn`);
+      if (!btn) return;
+      const span = btn.querySelector(`span`);
+      if (span) span.textContent = uiState.showSolution ? `Lösung verbergen` : `Lösung anzeigen`;
+    }
+
+    function resetUserEntries(btn) {
+      if (!btn) return;
+      if (btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        const span = btn.querySelector(`span`);
+        if (span) span.textContent = `Erneut klicken`;
+        setTimeout(function() {
+          if (btn.dataset.armed === `true`) {
+            btn.dataset.armed = `false`;
+            const s = btn.querySelector(`span`);
+            if (s) s.textContent = `Zurücksetzen`;
+          }
+        }, 3500);
+        return;
+      }
+      btn.dataset.armed = `false`;
+      const span = btn.querySelector(`span`);
+      if (span) span.textContent = `Zurücksetzen`;
+
+      appState.userEntries = {};
+      uiState.checkStatus = {};
+      uiState.showSolution = false;
+      updateSolutionToggleText();
+
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        for (let r = 0; r < puzzleData.N; r++) {
+          for (let c = 0; c < puzzleData.N; c++) {
+            refreshDomCellContent(r, c);
+          }
+        }
+        updateDomCellHighlights();
+      } else {
+        drawInteractiveCanvas();
+      }
+      updateProgressUI();
+      persistState();
+      setFeedback(`info`, `Alle eigenen Einträge wurden zurückgesetzt.`);
+    }
+
+    /* =========================================================================
+       Rendering: Controls, DOM Grid (N<=45), Canvas Viewport (N>45), Keypad
+    ========================================================================= */
+    function updateControlsUI() {
+      const { N, R, C, totalGivens } = puzzleData;
+      const diff = DIFFICULTY_CONFIG[appState.difficulty];
+
+      const specSize = document.getElementById(`spec-size`);
+      const specSub = document.getElementById(`spec-subgrid`);
+      const specCells = document.getElementById(`spec-cells`);
+      const specClues = document.getElementById(`spec-clues`);
+      const tagEl = document.getElementById(`board-subblock-tag`);
+      const customInput = document.getElementById(`custom-size-input`);
+
+      if (specSize) specSize.textContent = `${N}×${N}`;
+      if (specSub) specSub.textContent = `${R}×${C}`;
+      if (specCells) specCells.textContent = formatNum(N * N);
+      if (specClues) specClues.textContent = `${formatNum(totalGivens)} (${diff.pctText})`;
+      if (tagEl) tagEl.textContent = `${R}×${C} Unterblöcke`;
+      if (customInput) customInput.value = N;
+
+      const chips = document.querySelectorAll(`.chip-btn[data-size]`);
+      chips.forEach(function(btn) {
+        const s = parseInt(btn.dataset.size, 10);
+        btn.classList.toggle(`is-selected`, s === N);
+      });
+
+      const diffs = document.querySelectorAll(`.diff-btn[data-diff]`);
+      diffs.forEach(function(btn) {
+        btn.classList.toggle(`is-selected`, btn.dataset.diff === appState.difficulty);
+      });
+
+      updateSolutionToggleText();
+    }
+
+    function updateProgressUI() {
+      const N = puzzleData.N;
+      const totalEditable = Math.max(0, (N * N) - puzzleData.totalGivens);
+      const filled = Object.keys(appState.userEntries).length;
+      const filledEl = document.getElementById(`progress-filled`);
+      const statusEl = document.getElementById(`progress-status`);
+      if (filledEl) filledEl.textContent = `${formatNum(filled)} / ${formatNum(totalEditable)}`;
+      if (statusEl && Object.keys(uiState.checkStatus).length === 0) {
+        statusEl.textContent = filled === 0 ? `Offen` : `In Arbeit`;
+      }
+    }
+
+    function setFeedback(type, text) {
+      const banner = document.getElementById(`feedback-banner`);
+      const textEl = document.getElementById(`feedback-text`);
+      if (!banner || !textEl) return;
+      banner.classList.remove(`is-success`, `is-error`, `is-warning`);
+      if (type === `success`) banner.classList.add(`is-success`);
+      if (type === `error`) banner.classList.add(`is-error`);
+      if (type === `warning`) banner.classList.add(`is-warning`);
+      textEl.textContent = text;
+    }
+
+    function renderActiveBoard() {
+      const domGrid = document.getElementById(`dom-grid-container`);
+      const canvasStage = document.getElementById(`canvas-stage`);
+      if (!domGrid || !canvasStage) return;
+
+      if (puzzleData.N <= DOM_GRID_MAX_N) {
+        domGrid.style.display = `grid`;
+        canvasStage.style.display = `none`;
+        renderDomGrid();
+      } else {
+        domGrid.style.display = `none`;
+        canvasStage.style.display = `grid`;
+        uiState.canvasZoom = puzzleData.N > 100 ? Math.max(1, puzzleData.N / 30) : 1;
+        if (puzzleData.N <= 100) uiState.canvasZoom = 1;
+        else uiState.canvasZoom = 1;
+        drawInteractiveCanvas();
+      }
+    }
+
+    function renderDomGrid() {
+      const container = document.getElementById(`dom-grid-container`);
+      if (!container) return;
+      const { N, R, C } = puzzleData;
+
+      container.innerHTML = ``;
+      container.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
+      container.style.gridTemplateRows = `repeat(${N}, minmax(0, 1fr))`;
+
+      const fontSizeRem = N <= 4 ? 1.5 : N <= 9 ? 1.2 : N <= 16 ? 0.9 : N <= 25 ? 0.72 : 0.56;
+
+      const frag = document.createDocumentFragment();
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = document.createElement(`button`);
+          cell.type = `button`;
+          cell.className = `s-cell`;
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+          cell.style.fontSize = `${fontSizeRem}rem`;
+          cell.setAttribute(`role`, `gridcell`);
+          cell.setAttribute(`aria-label`, `Zeile ${r + 1}, Spalte ${c + 1}`);
+
+          if ((c + 1) % C === 0 && c < N - 1) cell.classList.add(`is-block-right`);
+          if ((r + 1) % R === 0 && r < N - 1) cell.classList.add(`is-block-bottom`);
+          if (c === N - 1) cell.classList.add(`is-last-col`);
+          if (r === N - 1) cell.classList.add(`is-last-row`);
+
+          applyDomCellDisplay(cell, r, c);
+          frag.appendChild(cell);
+        }
+      }
+      container.appendChild(frag);
+    }
+
+    function applyDomCellDisplay(cell, r, c) {
+      const key = cellKey(r, c);
+      const given = isGivenCell(r, c);
+      cell.classList.toggle(`is-given`, given);
+
+      const userVal = appState.userEntries[key];
+      const status = uiState.checkStatus[key];
+
+      cell.classList.remove(`is-correct`, `is-wrong`, `is-solution-shown`);
+
+      if (given) {
+        cell.textContent = getSolutionValue(r, c);
+      } else if (userVal) {
+        cell.textContent = userVal;
+        if (status === `correct`) cell.classList.add(`is-correct`);
+        if (status === `wrong`) cell.classList.add(`is-wrong`);
+      } else if (uiState.showSolution) {
+        cell.textContent = getSolutionValue(r, c);
+        cell.classList.add(`is-solution-shown`);
+      } else {
+        cell.textContent = ``;
+      }
+    }
+
+    function refreshDomCellContent(r, c) {
+      const container = document.getElementById(`dom-grid-container`);
+      if (!container) return;
+      const cell = container.children[r * puzzleData.N + c];
+      if (cell) applyDomCellDisplay(cell, r, c);
+    }
+
+    function refreshAllDomCellStates() {
+      const container = document.getElementById(`dom-grid-container`);
+      if (!container) return;
+      const N = puzzleData.N;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = container.children[r * N + c];
+          if (cell) applyDomCellDisplay(cell, r, c);
+        }
+      }
+    }
+
+    function updateDomCellHighlights() {
+      const container = document.getElementById(`dom-grid-container`);
+      if (!container) return;
+      const { N, R, C } = puzzleData;
+      const selR = uiState.selectedR;
+      const selC = uiState.selectedC;
+      const selVal = (selR >= 0 && selC >= 0) ? getDisplayValue(selR, selC) : 0;
+      const selBR = selR >= 0 ? Math.floor(selR / R) : -1;
+      const selBC = selC >= 0 ? Math.floor(selC / C) : -1;
+
+      const children = container.children;
+      for (let i = 0; i < children.length; i++) {
+        const cell = children[i];
+        const r = Math.floor(i / N);
+        const c = i % N;
+        const isSel = r === selR && c === selC;
+        const inPeer = selR >= 0 && (r === selR || c === selC || (Math.floor(r / R) === selBR && Math.floor(c / C) === selBC));
+        const val = getDisplayValue(r, c);
+        const isSameVal = selVal > 0 && val === selVal && !isSel;
+
+        cell.classList.toggle(`is-selected`, isSel);
+        cell.classList.toggle(`is-peer`, !isSel && inPeer);
+        cell.classList.toggle(`is-same-val`, isSameVal);
+      }
+    }
+
+    /* =========================================================================
+       High-Speed Interactive Canvas Renderer (N > 45, including 1000x1000)
+    ========================================================================= */
+    function getThemeToken(name, fallback) {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
+    }
+
+    function adjustCanvasZoom(factor) {
+      const wrap = document.getElementById(`canvas-wrap`);
+      const size = wrap ? wrap.clientWidth : 500;
+      const oldZoom = uiState.canvasZoom;
+      const maxZoom = Math.max(4, puzzleData.N / 8);
+      const newZoom = Math.min(maxZoom, Math.max(1, oldZoom * factor));
+      const center = size / 2;
+      uiState.canvasPanX = center - (center - uiState.canvasPanX) * (newZoom / oldZoom);
+      uiState.canvasPanY = center - (center - uiState.canvasPanY) * (newZoom / oldZoom);
+      uiState.canvasZoom = newZoom;
+      clampCanvasPan(size);
+      drawInteractiveCanvas();
+    }
+
+    function resetCanvasView() {
+      uiState.canvasZoom = 1;
+      uiState.canvasPanX = 0;
+      uiState.canvasPanY = 0;
+      drawInteractiveCanvas();
+    }
+
+    function clampCanvasPan(size) {
+      const totalSize = size * uiState.canvasZoom;
+      const minPan = size - totalSize;
+      uiState.canvasPanX = Math.min(0, Math.max(minPan, uiState.canvasPanX));
+      uiState.canvasPanY = Math.min(0, Math.max(minPan, uiState.canvasPanY));
+    }
+
+    function drawInteractiveCanvas() {
+      const wrap = document.getElementById(`canvas-wrap`);
+      const canvas = document.getElementById(`sudoku-canvas`);
+      if (!wrap || !canvas) return;
+
+      const cssSize = wrap.clientWidth || 500;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(cssSize * dpr);
+      canvas.height = Math.round(cssSize * dpr);
+
+      const ctx = canvas.getContext(`2d`);
+      if (!ctx) return;
+      ctx.scale(dpr, dpr);
+
+      const bg = getThemeToken(`--surface-container-low`, `#ffffff`);
+      const givenBg = getThemeToken(`--cell-given-bg`, `#f1f3f2`);
+      const selBg = getThemeToken(`--primary-container`, `#e2e9ee`);
+      const inkStrong = getThemeToken(`--on-surface`, `#23272a`);
+      const inkPrimary = getThemeToken(`--primary`, `#3c5a6e`);
+      const inkPositive = getThemeToken(`--positive`, `#2e6041`);
+      const bgPositive = getThemeToken(`--positive-bg`, `#e7f0ea`);
+      const inkError = getThemeToken(`--error`, `#a63d32`);
+      const bgError = getThemeToken(`--error-bg`, `#f8e8e6`);
+      const inkSecondary = getThemeToken(`--secondary`, `#4f6b53`);
+      const gridThin = getThemeToken(`--grid-border-thin`, `#c6cdca`);
+      const gridStrong = getThemeToken(`--grid-border-strong`, `#23272a`);
+
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, cssSize, cssSize);
+
+      const { N, R, C } = puzzleData;
+      const cellPx = (cssSize * uiState.canvasZoom) / N;
+
+      const rStart = Math.max(0, Math.floor(-uiState.canvasPanY / cellPx));
+      const rEnd = Math.min(N - 1, Math.ceil((cssSize - uiState.canvasPanY) / cellPx));
+      const cStart = Math.max(0, Math.floor(-uiState.canvasPanX / cellPx));
+      const cEnd = Math.min(N - 1, Math.ceil((cssSize - uiState.canvasPanX) / cellPx));
+
+      const zoomLbl = document.getElementById(`canvas-zoom-label`);
+      if (zoomLbl) {
+        zoomLbl.textContent = `Großraster (${N}×${N}) · Zoom: ${Math.round(uiState.canvasZoom * 100)} %`;
+      }
+
+      ctx.save();
+      ctx.translate(uiState.canvasPanX, uiState.canvasPanY);
+
+      if (cellPx >= 4) {
+        // Draw visible cells
+        const showNumbers = cellPx >= 11;
+        const fontPx = Math.max(7, Math.floor(cellPx * 0.42));
+        ctx.textAlign = `center`;
+        ctx.textBaseline = `middle`;
+
+        for (let r = rStart; r <= rEnd; r++) {
+          for (let c = cStart; c <= cEnd; c++) {
+            const x = c * cellPx;
+            const y = r * cellPx;
+            const given = isGivenCell(r, c);
+            const key = cellKey(r, c);
+            const userVal = appState.userEntries[key];
+            const status = uiState.checkStatus[key];
+            const isSel = r === uiState.selectedR && c === uiState.selectedC;
+
+            if (isSel) {
+              ctx.fillStyle = selBg;
+              ctx.fillRect(x, y, cellPx, cellPx);
+            } else if (status === `correct`) {
+              ctx.fillStyle = bgPositive;
+              ctx.fillRect(x, y, cellPx, cellPx);
+            } else if (status === `wrong`) {
+              ctx.fillStyle = bgError;
+              ctx.fillRect(x, y, cellPx, cellPx);
+            } else if (given) {
+              ctx.fillStyle = givenBg;
+              ctx.fillRect(x, y, cellPx, cellPx);
+            }
+
+            if (showNumbers) {
+              if (given) {
+                ctx.fillStyle = inkStrong;
+                ctx.font = `600 ${fontPx}px Outfit, sans-serif`;
+                ctx.fillText(String(getSolutionValue(r, c)), x + cellPx / 2, y + cellPx / 2);
+              } else if (userVal) {
+                ctx.fillStyle = status === `correct` ? inkPositive : status === `wrong` ? inkError : inkPrimary;
+                ctx.font = `500 ${fontPx}px Outfit, sans-serif`;
+                ctx.fillText(String(userVal), x + cellPx / 2, y + cellPx / 2);
+              } else if (uiState.showSolution) {
+                ctx.fillStyle = inkSecondary;
+                ctx.font = `400 ${fontPx}px Outfit, sans-serif`;
+                ctx.fillText(String(getSolutionValue(r, c)), x + cellPx / 2, y + cellPx / 2);
+              }
+            } else if (userVal) {
+              ctx.fillStyle = status === `wrong` ? inkError : inkPrimary;
+              ctx.fillRect(x + 1, y + 1, Math.max(2, cellPx - 2), Math.max(2, cellPx - 2));
+            }
+          }
+        }
+
+        // Thin cell lines
+        ctx.strokeStyle = gridThin;
+        ctx.lineWidth = 0.75;
+        ctx.beginPath();
+        for (let r = rStart; r <= rEnd + 1; r++) {
+          const y = r * cellPx;
+          ctx.moveTo(cStart * cellPx, y);
+          ctx.lineTo((cEnd + 1) * cellPx, y);
+        }
+        for (let c = cStart; c <= cEnd + 1; c++) {
+          const x = c * cellPx;
+          ctx.moveTo(x, rStart * cellPx);
+          ctx.lineTo(x, (rEnd + 1) * cellPx);
+        }
+        ctx.stroke();
+      } else {
+        // Ultra-dense overview mode (e.g. 1000x1000 zoomed out): render user edits & subtle structural pattern
+        ctx.fillStyle = givenBg;
+        const step = Math.max(1, Math.floor(N / 200));
+        for (let r = 0; r < N; r += step) {
+          for (let c = 0; c < N; c += step) {
+            if (isGivenCell(r, c)) {
+              ctx.fillRect(c * cellPx, r * cellPx, Math.max(1, cellPx * step), Math.max(1, cellPx * step));
+            }
+          }
+        }
+        const entries = Object.entries(appState.userEntries || {});
+        for (let i = 0; i < entries.length; i++) {
+          const entryKey = entries[i] && entries[i][0];
+          if (!entryKey) continue;
+          const parts = String(entryKey).split(`,`);
+          if (parts.length < 2) continue;
+          const er = parseInt(parts[0], 10);
+          const ec = parseInt(parts[1], 10);
+          const st = uiState.checkStatus[entryKey];
+          ctx.fillStyle = st === `wrong` ? inkError : st === `correct` ? inkPositive : inkPrimary;
+          ctx.fillRect(ec * cellPx - 1, er * cellPx - 1, Math.max(4, cellPx), Math.max(4, cellPx));
+        }
+      }
+
+      // Draw major block borders
+      const blockW = C * cellPx;
+      const blockH = R * cellPx;
+      if (blockW >= 3 && blockH >= 3) {
+        ctx.strokeStyle = gridStrong;
+        ctx.lineWidth = blockW >= 15 ? 1.5 : 0.75;
+        ctx.beginPath();
+        const firstBR = Math.floor(rStart / R) * R;
+        const firstBC = Math.floor(cStart / C) * C;
+        for (let r = firstBR; r <= rEnd + R; r += R) {
+          if (r > N) break;
+          const y = r * cellPx;
+          ctx.moveTo(cStart * cellPx, y);
+          ctx.lineTo(Math.min(N, cEnd + 1) * cellPx, y);
+        }
+        for (let c = firstBC; c <= cEnd + C; c += C) {
+          if (c > N) break;
+          const x = c * cellPx;
+          ctx.moveTo(x, rStart * cellPx);
+          ctx.lineTo(x, Math.min(N, rEnd + 1) * cellPx);
+        }
+        ctx.stroke();
+      }
+
+      // Highlight selected cell border clearly
+      if (uiState.selectedR >= 0 && uiState.selectedC >= 0) {
+        ctx.strokeStyle = inkPrimary;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(uiState.selectedC * cellPx, uiState.selectedR * cellPx, cellPx, cellPx);
+      }
+
+      ctx.restore();
+    }
+
+    function renderKeypad() {
+      const N = puzzleData.N;
+      const titleEl = document.getElementById(`keypad-title`);
+      const btnGrid = document.getElementById(`keypad-buttons`);
+      const multiEl = document.getElementById(`multidigit-entry`);
+      if (!btnGrid || !multiEl) return;
+
+      btnGrid.innerHTML = ``;
+      if (titleEl) {
+        titleEl.textContent = N <= 25
+          ? `Eingabe-Tastenfeld (1 bis ${N})`
+          : `Ziffern-Eingabe (1 bis ${formatNum(N)})`;
+      }
+
+      if (N <= 25) {
+        multiEl.style.display = `none`;
+        const frag = document.createDocumentFragment();
+        for (let v = 1; v <= N; v++) {
+          const btn = document.createElement(`button`);
+          btn.type = `button`;
+          btn.className = `key-btn`;
+          btn.textContent = String(v);
+          btn.onclick = function() { enterNumberIntoSelected(v); };
+          frag.appendChild(btn);
+        }
+        const eraseBtn = document.createElement(`button`);
+        eraseBtn.type = `button`;
+        eraseBtn.className = `key-btn key-erase`;
+        eraseBtn.textContent = `Feld leeren`;
+        eraseBtn.onclick = function() { clearSelectedCell(); };
+        frag.appendChild(eraseBtn);
+        btnGrid.appendChild(frag);
+      } else {
+        multiEl.style.display = `flex`;
+        const frag = document.createDocumentFragment();
+        for (let d = 1; d <= 9; d++) {
+          const btn = document.createElement(`button`);
+          btn.type = `button`;
+          btn.className = `key-btn`;
+          btn.textContent = String(d);
+          btn.onclick = function() { appendMultiDigit(String(d)); };
+          frag.appendChild(btn);
+        }
+        const zeroBtn = document.createElement(`button`);
+        zeroBtn.type = `button`;
+        zeroBtn.className = `key-btn`;
+        zeroBtn.textContent = `0`;
+        zeroBtn.onclick = function() { appendMultiDigit(`0`); };
+        frag.appendChild(zeroBtn);
+        btnGrid.appendChild(frag);
+      }
+    }
+
+    /* =========================================================================
+       Print Preview, Manual Print Sliders, Zero-Overflow Worksheet Scaling
+    ========================================================================= */
+    function openPrintPreview() {
+      const overlay = document.getElementById(`print-preview-overlay`);
+      if (!overlay) return;
+      uiState.previewOpen = true;
+      overlay.classList.add(`is-open`);
+
+      const marginSlider = document.getElementById(`margin-slider`);
+      const fontSlider = document.getElementById(`instr-font-slider`);
+      const titleInput = document.getElementById(`worksheet-title-input`);
+      const studentToggle = document.getElementById(`show-student-toggle`);
+
+      if (marginSlider) marginSlider.value = appState.printMarginMm;
+      if (fontSlider) fontSlider.value = appState.printInstrPt;
+      if (titleInput) titleInput.value = appState.title;
+      if (studentToggle) studentToggle.checked = appState.showStudentRow;
+
+      syncPrintSettingsToDom();
+      populateWorksheetPages();
+      requestAnimationFrame(function() {
+        fitWorksheetGrids();
+        scalePreviewSheetsToViewport();
+      });
+    }
+
+    function closePrintPreview() {
+      const overlay = document.getElementById(`print-preview-overlay`);
+      if (!overlay) return;
+      uiState.previewOpen = false;
+      overlay.classList.remove(`is-open`);
+    }
+
+    function handleMarginSlider(val) {
+      appState.printMarginMm = parseFloat(val);
+      syncPrintSettingsToDom();
+      requestAnimationFrame(function() {
+        fitWorksheetGrids();
+      });
+      persistState();
+    }
+
+    function handleInstrFontSlider(val) {
+      appState.printInstrPt = parseFloat(val);
+      syncPrintSettingsToDom();
+      requestAnimationFrame(function() {
+        fitWorksheetGrids();
+      });
+      persistState();
+    }
+
+    function handleWorksheetTitleChange(val) {
+      appState.title = val.trim() || `Sudoku-Übungsblatt`;
+      populateWorksheetHeadersOnly();
+      requestAnimationFrame(function() {
+        fitWorksheetGrids();
+      });
+      persistState();
+    }
+
+    function handleShowStudentToggle(checked) {
+      appState.showStudentRow = checked;
+      syncPrintSettingsToDom();
+      requestAnimationFrame(function() {
+        fitWorksheetGrids();
+      });
+      persistState();
+    }
+
+    function syncPrintSettingsToDom() {
+      const marginLbl = document.getElementById(`margin-value-label`);
+      const fontLbl = document.getElementById(`instr-font-value-label`);
+      if (marginLbl) marginLbl.textContent = `${appState.printMarginMm} mm`;
+      if (fontLbl) fontLbl.textContent = `${appState.printInstrPt} pt`;
+
+      document.documentElement.style.setProperty(`--print-margin-mm`, `${appState.printMarginMm}mm`);
+      document.documentElement.style.setProperty(`--print-instr-pt`, `${appState.printInstrPt}pt`);
+
+      // Convert mm to 96dpi CSS px for exact WYSIWYG preview inside 794x1123 A4 sheet
+      const padPx = Math.round(appState.printMarginMm * 3.7795275591);
+      const s1 = document.getElementById(`sheet-page-1`);
+      const s2 = document.getElementById(`sheet-page-2`);
+      if (s1) s1.style.padding = `${padPx}px`;
+      if (s2) s2.style.padding = `${padPx}px`;
+
+      const row1 = document.getElementById(`ws-student-1`);
+      const row2 = document.getElementById(`ws-student-2`);
+      if (row1) row1.style.display = appState.showStudentRow ? `flex` : `none`;
+      if (row2) row2.style.display = appState.showStudentRow ? `flex` : `none`;
+    }
+
+    function populateWorksheetHeadersOnly() {
+      const { N, R, C } = puzzleData;
+      const diffLabel = DIFFICULTY_CONFIG[appState.difficulty].label;
+      const title = appState.title;
+      const todayStr = getTodayFormatted();
+
+      const t1 = document.getElementById(`ws-title-1`);
+      const t2 = document.getElementById(`ws-title-2`);
+      const m1 = document.getElementById(`ws-meta-1`);
+      const m2 = document.getElementById(`ws-meta-2`);
+      const d1 = document.getElementById(`ws-date-1`);
+      const d2 = document.getElementById(`ws-date-2`);
+      const f1 = document.getElementById(`ws-footer-left-1`);
+      const f2 = document.getElementById(`ws-footer-left-2`);
+      const list = document.getElementById(`ws-instr-list`);
+
+      if (t1) t1.textContent = title;
+      if (t2) t2.textContent = `Lösungsblatt: ${title}`;
+      const metaText = `Raster: ${N}×${N} · Unterblöcke: ${R}×${C} · Schwierigkeit: ${diffLabel}`;
+      if (m1) m1.textContent = metaText;
+      if (m2) m2.textContent = metaText;
+      if (d1) d1.textContent = todayStr;
+      if (d2) d2.textContent = todayStr;
+      if (f1) f1.textContent = `${title} · ${N}×${N} (${diffLabel})`;
+      if (f2) f2.textContent = `Lösungsblatt zu „${title}“`;
+
+      if (list) {
+        list.innerHTML = `
+          <li>Fülle alle leeren Felder so mit den Zahlen von <strong>1 bis ${formatNum(N)}</strong> aus, dass jede Zahl in jeder <strong>Zeile</strong> genau einmal vorkommt.</li>
+          <li>Jede Zahl von <strong>1 bis ${formatNum(N)}</strong> darf in jeder <strong>Spalte</strong> genau einmal vorkommen.</li>
+          <li>Jeder fett umrandete <strong>${R}×${C}-Block</strong> muss alle Zahlen von <strong>1 bis ${formatNum(N)}</strong> genau einmal enthalten.</li>
+          <li>Nutze die vorgegebenen Zahlen als Startpunkte und trage pro Kästchen nur eine Zahl ein.</li>
+        `;
+      }
+    }
+
+    function populateWorksheetPages() {
+      populateWorksheetHeadersOnly();
+      const { N } = puzzleData;
+      const g1 = document.getElementById(`ws-grid-1`);
+      const g2 = document.getElementById(`ws-grid-2`);
+      if (!g1 || !g2) return;
+
+      if (N <= 25) {
+        renderWorksheetDomGrid(g1, false);
+        renderWorksheetDomGrid(g2, true);
+      } else {
+        renderWorksheetCanvasGrid(g1, false);
+        renderWorksheetCanvasGrid(g2, true);
+      }
+    }
+
+    function renderWorksheetDomGrid(container, isSolution) {
+      const { N, R, C } = puzzleData;
+      container.innerHTML = ``;
+      container.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
+      container.style.gridTemplateRows = `repeat(${N}, minmax(0, 1fr))`;
+
+      const frag = document.createDocumentFragment();
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = document.createElement(`div`);
+          cell.className = `ws-cell`;
+          if ((c + 1) % C === 0 && c < N - 1) cell.classList.add(`is-block-right`);
+          if ((r + 1) % R === 0 && r < N - 1) cell.classList.add(`is-block-bottom`);
+          if (c === N - 1) cell.classList.add(`is-last-col`);
+          if (r === N - 1) cell.classList.add(`is-last-row`);
+
+          const given = isGivenCell(r, c);
+          if (given) {
+            cell.classList.add(`is-given`);
+            cell.textContent = getSolutionValue(r, c);
+          } else if (isSolution) {
+            cell.classList.add(`is-solved`);
+            cell.textContent = getSolutionValue(r, c);
+          } else {
+            cell.textContent = ``;
+          }
+          frag.appendChild(cell);
+        }
+      }
+      container.appendChild(frag);
+    }
+
+    function renderWorksheetCanvasGrid(container, isSolution) {
+      container.innerHTML = ``;
+      container.style.display = `block`;
+      const canvas = document.createElement(`canvas`);
+      canvas.className = `ws-canvas-grid`;
+      container.appendChild(canvas);
+      drawSheetGridCanvas(canvas, 1600, isSolution);
+    }
+
+    function drawSheetGridCanvas(canvas, resPx, isSolution) {
+      const { N, R, C } = puzzleData;
+      canvas.width = resPx;
+      canvas.height = resPx;
+      const ctx = canvas.getContext(`2d`);
+      if (!ctx) return;
+
+      const paperBg = getThemeToken(`--paper-bg`, `#ffffff`);
+      const paperInk = getThemeToken(`--paper-ink`, `#1a1d1f`);
+      const solInk = getThemeToken(`--paper-solution-ink`, `#2c5270`);
+      const thinRule = getThemeToken(`--grid-border-thin`, `#c6cdca`);
+      const givenTint = getThemeToken(`--cell-given-bg`, `#f1f3f2`);
+
+      ctx.fillStyle = paperBg;
+      ctx.fillRect(0, 0, resPx, resPx);
+
+      const cellPx = resPx / N;
+
+      if (N <= 80) {
+        const fontPx = Math.max(6, Math.floor(cellPx * (N > 30 ? 0.44 : 0.5)));
+        ctx.textAlign = `center`;
+        ctx.textBaseline = `middle`;
+
+        for (let r = 0; r < N; r++) {
+          for (let c = 0; c < N; c++) {
+            const x = c * cellPx;
+            const y = r * cellPx;
+            const given = isGivenCell(r, c);
+
+            if (given) {
+              ctx.fillStyle = paperInk;
+              ctx.font = `700 ${fontPx}px Outfit, sans-serif`;
+              ctx.fillText(String(getSolutionValue(r, c)), x + cellPx / 2, y + cellPx / 2);
+            } else if (isSolution) {
+              ctx.fillStyle = solInk;
+              ctx.font = `400 ${fontPx}px Outfit, sans-serif`;
+              ctx.fillText(String(getSolutionValue(r, c)), x + cellPx / 2, y + cellPx / 2);
+            }
+          }
+        }
+
+        ctx.strokeStyle = thinRule;
+        ctx.lineWidth = Math.max(0.5, resPx / 1200);
+        ctx.beginPath();
+        for (let i = 1; i < N; i++) {
+          const p = i * cellPx;
+          ctx.moveTo(0, p);
+          ctx.lineTo(resPx, p);
+          ctx.moveTo(p, 0);
+          ctx.lineTo(p, resPx);
+        }
+        ctx.stroke();
+      } else {
+        // Ultra-large N (e.g. 1000x1000) clean schematic representation on A4
+        const step = Math.max(1, Math.floor(N / 250));
+        ctx.fillStyle = givenTint;
+        for (let r = 0; r < N; r += step) {
+          for (let c = 0; c < N; c += step) {
+            if (isGivenCell(r, c)) {
+              ctx.fillRect(c * cellPx, r * cellPx, Math.max(1, cellPx * step), Math.max(1, cellPx * step));
+            }
+          }
+        }
+      }
+
+      // Draw bold subblock dividers
+      ctx.strokeStyle = paperInk;
+      ctx.lineWidth = N <= 45 ? 3.2 : 1.8;
+      ctx.beginPath();
+      for (let r = R; r < N; r += R) {
+        const y = r * cellPx;
+        ctx.moveTo(0, y);
+        ctx.lineTo(resPx, y);
+      }
+      for (let c = C; c < N; c += C) {
+        const x = c * cellPx;
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, resPx);
+      }
+      ctx.stroke();
+    }
+
+    /* Dynamic Height Measurement -> Zero Overflow on Page 1 & Page 2 */
+    function fitWorksheetGrids() {
+      fitSingleSheet(1);
+      fitSingleSheet(2);
+    }
+
+    function fitSingleSheet(pageNum) {
+      const sheet = document.getElementById(`sheet-page-${pageNum}`);
+      const header = document.getElementById(`ws-header-${pageNum}`);
+      const footer = document.getElementById(`ws-footer-${pageNum}`);
+      const gridBox = document.getElementById(`ws-grid-${pageNum}`);
+      if (!sheet || !header || !footer || !gridBox) return;
+
+      const cs = getComputedStyle(sheet);
+      const padH = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const padW = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+
+      const innerW = sheet.clientWidth - padW;
+      const innerH = sheet.clientHeight - padH;
+
+      const usedH = header.offsetHeight + footer.offsetHeight + 18;
+      const availH = Math.max(80, innerH - usedH);
+      const gridPx = Math.floor(Math.min(innerW, availH));
+
+      gridBox.style.width = `${gridPx}px`;
+      gridBox.style.height = `${gridPx}px`;
+
+      if (puzzleData.N <= 25) {
+        const cellPx = gridPx / puzzleData.N;
+        const digitFactor = puzzleData.N >= 10 ? 0.42 : 0.52;
+        const fontPx = Math.max(6, Math.floor(cellPx * digitFactor));
+        gridBox.style.fontSize = `${fontPx}px`;
+      }
+    }
+
+    function scalePreviewSheetsToViewport() {
+      const stage = document.getElementById(`preview-stage`);
+      if (!stage) return;
+      const availW = Math.max(260, stage.clientWidth - 32);
+      const scale = Math.min(1, availW / 794);
+      const scaledH = Math.round(1123 * scale);
+
+      for (let p = 1; p <= 2; p++) {
+        const scaler = document.getElementById(`scaler-page-${p}`);
+        const sheet = document.getElementById(`sheet-page-${p}`);
+        if (scaler && sheet) {
+          scaler.style.width = `${Math.round(794 * scale)}px`;
+          scaler.style.height = `${scaledH}px`;
+          sheet.style.transform = `scale(${scale})`;
+        }
+      }
+    }
+
+    function triggerBrowserPrint() {
+      fitWorksheetGrids();
+      window.print();
+    }
+
+    function exportWorksheetPng(pageNum) {
+      const W = 1240;
+      const H = 1754;
+      const canvas = document.createElement(`canvas`);
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext(`2d`);
+      if (!ctx) return;
+
+      const scaleFactor = W / 794;
+      const marginPx = Math.round(appState.printMarginMm * 3.7795275591 * scaleFactor);
+      const paperBg = getThemeToken(`--paper-bg`, `#ffffff`);
+      const paperInk = getThemeToken(`--paper-ink`, `#1a1d1f`);
+      const paperMuted = getThemeToken(`--paper-muted`, `#575f64`);
+      const ruleColor = getThemeToken(`--paper-rule`, `#cfd6d2`);
+      const primaryColor = getThemeToken(`--primary`, `#3c5a6e`);
+      const boxBg = getThemeToken(`--background`, `#f5f6f5`);
+
+      ctx.fillStyle = paperBg;
+      ctx.fillRect(0, 0, W, H);
+
+      let y = marginPx;
+      const innerW = W - marginPx * 2;
+      const diffLabel = DIFFICULTY_CONFIG[appState.difficulty].label;
+      const { N, R, C } = puzzleData;
+
+      // Kicker
+      ctx.fillStyle = paperMuted;
+      ctx.font = `600 18px Outfit, sans-serif`;
+      ctx.fillText(pageNum === 1 ? `ARBEITSBLATT · BLATT 1` : `LÖSUNGSBLATT · SEPARATES EXTRA-BLATT`, marginPx, y + 18);
+      y += 34;
+
+      // Title
+      ctx.fillStyle = paperInk;
+      ctx.font = `600 40px Outfit, sans-serif`;
+      ctx.fillText(pageNum === 1 ? appState.title : `Lösungsblatt: ${appState.title}`, marginPx, y + 36);
+      y += 54;
+
+      // Meta
+      ctx.fillStyle = paperMuted;
+      ctx.font = `400 20px "Hanken Grotesk", sans-serif`;
+      ctx.fillText(`Raster: ${N}×${N} · Unterblöcke: ${R}×${C} · Schwierigkeit: ${diffLabel}`, marginPx, y + 18);
+      y += 34;
+
+      // Student Row
+      if (appState.showStudentRow) {
+        ctx.fillStyle = paperInk;
+        ctx.font = `600 20px "Hanken Grotesk", sans-serif`;
+        ctx.fillText(`Name: ____________________________`, marginPx, y + 20);
+        ctx.fillText(`Datum: ${getTodayFormatted()}`, W - marginPx - 240, y + 20);
+        y += 32;
+        ctx.strokeStyle = ruleColor;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(marginPx, y);
+        ctx.lineTo(W - marginPx, y);
+        ctx.stroke();
+        y += 16;
+      }
+
+      // Instructions Box
+      const instrFontPx = Math.round(appState.printInstrPt * 2.08);
+      const instrLines = pageNum === 1 ? [
+        `Anweisungen zur Lösung:`,
+        `1. Fülle alle leeren Felder mit den Zahlen von 1 bis ${formatNum(N)} (jede Zeile einmal).`,
+        `2. Jede Zahl von 1 bis ${formatNum(N)} darf in jeder Spalte genau einmal vorkommen.`,
+        `3. Jeder fett umrandete ${R}×${C}-Block enthält alle Zahlen von 1 bis ${formatNum(N)} genau einmal.`,
+        `4. Nutze die Vorgaben als Startpunkte und trage pro Kästchen nur eine Zahl ein.`
+      ] : [
+        `Hinweis zum Lösungsblatt:`,
+        `Dunkel fett gedruckte Zahlen entsprechen den Vorgaben auf Blatt 1; farbige Zahlen zeigen die Lösung.`
+      ];
+
+      const lineH = Math.round(instrFontPx * 1.4);
+      const boxH = instrLines.length * lineH + 24;
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(marginPx, y, innerW, boxH);
+      ctx.fillStyle = primaryColor;
+      ctx.fillRect(marginPx, y, 6, boxH);
+
+      ctx.fillStyle = paperInk;
+      for (let i = 0; i < instrLines.length; i++) {
+        ctx.font = i === 0 ? `600 ${instrFontPx}px "Hanken Grotesk", sans-serif` : `400 ${instrFontPx}px "Hanken Grotesk", sans-serif`;
+        ctx.fillText(instrLines[i], marginPx + 20, y + 14 + (i + 0.8) * lineH);
+      }
+      y += boxH + 24;
+
+      // Footer measurement
+      const footerH = 44;
+      const availH = H - marginPx - footerH - y;
+      const gridPx = Math.floor(Math.min(innerW, availH));
+      const gridX = Math.round((W - gridPx) / 2);
+      const gridY = Math.round(y + (availH - gridPx) / 2);
+
+      // Draw offscreen grid onto canvas
+      const gridCanvas = document.createElement(`canvas`);
+      drawSheetGridCanvas(gridCanvas, gridPx, pageNum === 2);
+      ctx.drawImage(gridCanvas, gridX, gridY, gridPx, gridPx);
+      ctx.strokeStyle = paperInk;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(gridX, gridY, gridPx, gridPx);
+
+      // Footer
+      const footY = H - marginPx - 14;
+      ctx.strokeStyle = ruleColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(marginPx, footY - 22);
+      ctx.lineTo(W - marginPx, footY - 22);
+      ctx.stroke();
+
+      ctx.fillStyle = paperMuted;
+      ctx.font = `400 17px Outfit, sans-serif`;
+      ctx.fillText(pageNum === 1 ? `${appState.title} · ${N}×${N} (${diffLabel})` : `Lösungsblatt zu „${appState.title}“`, marginPx, footY);
+      const rightTxt = pageNum === 1 ? `Blatt 1 von 2 · Arbeitsblatt` : `Blatt 2 von 2 · Separates Lösungsblatt`;
+      const tw = ctx.measureText(rightTxt).width;
+      ctx.fillText(rightTxt, W - marginPx - tw, footY);
+
+      const dataUrl = canvas.toDataURL(`image/png`);
+      if (!dataUrl || typeof dataUrl !== `string` || dataUrl.indexOf(`,`) === -1) return;
+      const base64 = dataUrl.split(`,`)[1];
+      const fname = pageNum === 1 ? `sudoku_${N}x${N}_arbeitsblatt.png` : `sudoku_${N}x${N}_loesungsblatt.png`;
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: base64,
+          contentType: `image/png`,
+          encoding: `base64`,
+          filename: fname
+        });
+      }
+    }
+
+    /* =========================================================================
+       Event Listeners (DOM Grid Delegation, Canvas Drag/Tap, Keyboard)
+    ========================================================================= */
+    function setupEventListeners() {
+      const domGrid = document.getElementById(`dom-grid-container`);
+      if (domGrid) {
+        domGrid.addEventListener(`click`, function(e) {
+          const cell = e.target.closest(`.s-cell`);
+          if (!cell) return;
+          const r = parseInt(cell.dataset.r, 10);
+          const c = parseInt(cell.dataset.c, 10);
+          selectCell(r, c);
+        });
+      }
+
+      const canvasWrap = document.getElementById(`canvas-wrap`);
+      if (canvasWrap) {
+        canvasWrap.addEventListener(`pointerdown`, function(e) {
+          uiState.isDraggingCanvas = true;
+          uiState.dragMoved = false;
+          uiState.dragStartX = e.clientX;
+          uiState.dragStartY = e.clientY;
+          uiState.panStartX = uiState.canvasPanX;
+          uiState.panStartY = uiState.canvasPanY;
+          canvasWrap.setPointerCapture(e.pointerId);
+        });
+        canvasWrap.addEventListener(`pointermove`, function(e) {
+          if (!uiState.isDraggingCanvas) return;
+          const dx = e.clientX - uiState.dragStartX;
+          const dy = e.clientY - uiState.dragStartY;
+          if (Math.hypot(dx, dy) > 5) uiState.dragMoved = true;
+          if (uiState.dragMoved) {
+            uiState.canvasPanX = uiState.panStartX + dx;
+            uiState.canvasPanY = uiState.panStartY + dy;
+            clampCanvasPan(canvasWrap.clientWidth || 500);
+            drawInteractiveCanvas();
+          }
+        });
+        canvasWrap.addEventListener(`pointerup`, function(e) {
+          if (!uiState.isDraggingCanvas) return;
+          uiState.isDraggingCanvas = false;
+          if (!uiState.dragMoved) {
+            const rect = canvasWrap.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            const cellPx = (rect.width * uiState.canvasZoom) / puzzleData.N;
+            const c = Math.floor((px - uiState.canvasPanX) / cellPx);
+            const r = Math.floor((py - uiState.canvasPanY) / cellPx);
+            if (r >= 0 && r < puzzleData.N && c >= 0 && c < puzzleData.N) {
+              selectCell(r, c);
+            }
+          }
+        });
+      }
+
+      document.addEventListener(`keydown`, function(e) {
+        if (uiState.previewOpen) {
+          if (e.key === `Escape`) closePrintPreview();
+          return;
+        }
+        const activeTag = document.activeElement ? document.activeElement.tagName : ``;
+        if (activeTag === `INPUT` || activeTag === `TEXTAREA`) return;
+        if (uiState.selectedR < 0 || uiState.selectedC < 0) return;
+
+        if (e.key >= `0` && e.key <= `9`) {
+          e.preventDefault();
+          if (puzzleData.N <= 9) {
+            const num = parseInt(e.key, 10);
+            if (num === 0) clearSelectedCell();
+            else enterNumberIntoSelected(num);
+          } else {
+            appendMultiDigit(e.key);
+          }
+        } else if (e.key === `Backspace` || e.key === `Delete`) {
+          e.preventDefault();
+          clearSelectedCell();
+        } else if (e.key === `ArrowUp`) {
+          e.preventDefault();
+          selectCell(Math.max(0, uiState.selectedR - 1), uiState.selectedC);
+        } else if (e.key === `ArrowDown`) {
+          e.preventDefault();
+          selectCell(Math.min(puzzleData.N - 1, uiState.selectedR + 1), uiState.selectedC);
+        } else if (e.key === `ArrowLeft`) {
+          e.preventDefault();
+          selectCell(uiState.selectedR, Math.max(0, uiState.selectedC - 1));
+        } else if (e.key === `ArrowRight`) {
+          e.preventDefault();
+          selectCell(uiState.selectedR, Math.min(puzzleData.N - 1, uiState.selectedC + 1));
+        }
+      });
+
+      window.addEventListener(`resize`, function() {
+        if (puzzleData.N > DOM_GRID_MAX_N) drawInteractiveCanvas();
+        if (uiState.previewOpen) scalePreviewSheetsToViewport();
+      });
+
+      window.addEventListener(`beforeprint`, function() {
+        if (!uiState.previewOpen) {
+          populateWorksheetPages();
+          syncPrintSettingsToDom();
+        }
+        fitWorksheetGrids();
+      });
+    }
+
+    /* =========================================================================
+       Initialization
+    ========================================================================= */
+    async function initApp() {
+      if (window.lucide && typeof window.lucide.createIcons === `function`) {
+        window.lucide.createIcons();
+      }
+
+      setupEventListeners();
+
+      let restored = false;
+      if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+        try {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved && typeof saved === `object` && saved.size >= 2) {
+            appState.size = saved.size;
+            appState.difficulty = DIFFICULTY_CONFIG[saved.difficulty] ? saved.difficulty : `leicht`;
+            appState.seed = typeof saved.seed === `number` ? saved.seed : appState.seed;
+            appState.title = typeof saved.title === `string` && saved.title ? saved.title : `Sudoku-Übungsblatt`;
+            appState.printMarginMm = typeof saved.printMarginMm === `number` ? saved.printMarginMm : 12;
+            appState.printInstrPt = typeof saved.printInstrPt === `number` ? saved.printInstrPt : 10;
+            appState.showStudentRow = typeof saved.showStudentRow === `boolean` ? saved.showStudentRow : true;
+            appState.userEntries = (saved.userEntries && typeof saved.userEntries === `object`) ? saved.userEntries : {};
+            restored = true;
+          }
+        } catch (err) {
+          restored = false;
+        }
+      }
+
+      buildPuzzle(appState.size, appState.difficulty, appState.seed);
+      updateControlsUI();
+      renderActiveBoard();
+      renderKeypad();
+      updateProgressUI();
+
+      if (restored && Object.keys(appState.userEntries).length > 0) {
+        setFeedback(`info`, `Vorheriger Bearbeitungsstand (${appState.size}×${appState.size}, ${DIFFICULTY_CONFIG[appState.difficulty].label}) wiederhergestellt.`);
+      }
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    document.addEventListener(`DOMContentLoaded`, initApp);
+  </script>
+</body>
+</html>
