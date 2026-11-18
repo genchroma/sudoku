@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="tool">
+  <meta name="design-style" content="showroom">
+  <title>Sudoku Generator &amp; Arbeitsblatt-Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* Page and surfaces (Showroom) */
+      --background: #fbfbfd;
+      --surface-container-low: #f5f5f7;
+      --surface-container: #e8e8ed;
+      --surface-container-high: #dcdce1;
+      --surface-white: #ffffff;
+
+      /* Ink */
+      --on-surface: #1d1d1f;
+      --on-surface-variant: #6e6e73;
+
+      /* Rules */
+      --outline: #d2d2d7;
+      --outline-variant: #e5e5ea;
+
+      /* Accents */
+      --primary: #006bd6;
+      --on-primary: #ffffff;
+      --primary-container: #e8f1fd;
+      --on-primary-container: #0058b0;
+      --primary-peer-bg: #f1f6fd;
+      --secondary: #bf4800;
+      --tertiary: #1d1d1f;
+      --error: #d70015;
+      --on-error: #ffffff;
+      --error-container: #fdebec;
+      --on-error-container: #a50010;
+
+      /* Data series */
+      --data-1: #006bd6;
+      --data-2: #bf4800;
+      --data-3: #248a3d;
+      --data-4: #8944ab;
+      --data-context: #aeaeb2;
+
+      /* Semantic */
+      --positive: #248a3d;
+      --positive-container: #eaf6ed;
+      --on-positive-container: #18622a;
+      --warning: #bf4800;
+      --warning-container: #fff3eb;
+      --on-warning-container: #8f3500;
+      --focus: var(--primary);
+
+      /* Overlay & Print */
+      --scrim: rgb(29 29 31 / 0.45);
+      --shadow-modal: 0 24px 60px rgb(0 0 0 / 0.18);
+      --shadow-sheet: 0 4px 20px rgb(0 0 0 / 0.08);
+      --print-ink: #000000;
+      --print-muted: #525257;
+      --print-paper: #ffffff;
+
+      /* Fonts */
+      --font-headline: 'Inter Tight', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-label: 'Inter', sans-serif;
+
+      /* Shape */
+      --rounded: 9999px;
+      --rounded-md: 0.75rem;
+      --rounded-lg: 1.25rem;
+      --rounded-full: 9999px;
+
+      /* Style effects */
+      --headline-tracking: -0.035em;
+      --figure-tracking: -0.03em;
+      --tile-shadow-hover: 0 8px 28px rgb(0 0 0 / 0.08);
+
+      /* Type scale (Focused Tool) */
+      --display-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing scale (4pt base) */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 6rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+    button, input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1240px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Treatment 1: Centered headline stack */
+    .headline-stack {
+      text-align: center;
+      padding-block: var(--space-xl) var(--space-md);
+      padding-inline: var(--space-md);
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    .eyebrow {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      color: var(--secondary);
+      margin: 0 0 var(--space-xs);
+    }
+    .headline-stack h1 {
+      font-family: var(--font-headline);
+      font-size: var(--display-size);
+      font-weight: 700;
+      letter-spacing: var(--headline-tracking);
+      line-height: 1.05;
+      color: var(--on-surface);
+      margin: 0;
+    }
+    .headline-stack .lede {
+      color: var(--on-surface-variant);
+      max-width: 54ch;
+      margin: var(--space-sm) auto 0;
+      font-size: var(--subhead-size);
+      line-height: 1.5;
+    }
+
+    /* Tool 2-column layout (mobile-first single column -> asymmetric desktop) */
+    .tool-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-md);
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .tool-layout {
+        grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+        gap: var(--space-lg);
+      }
+    }
+
+    /* Treatment 2: Borderless rounded tiles */
+    .tile {
+      background: var(--surface-container-low);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      border: 0;
+    }
+    .tile-title {
+      font-family: var(--font-headline);
+      font-size: var(--headline-size);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0 0 var(--space-xs);
+      color: var(--on-surface);
+    }
+    .tile-subtitle {
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      margin: 0 0 var(--space-md);
+    }
+
+    /* Config groups */
+    .config-stack {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .field-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      color: var(--on-surface-variant);
+      display: block;
+    }
+
+    /* Segmented difficulty selector */
+    .segmented-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-sm);
+      background: var(--surface-container);
+      padding: var(--space-xs);
+      border-radius: var(--rounded-md);
+    }
+    @media (min-width: 480px) and (max-width: 959px) {
+      .segmented-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+    .seg-btn {
+      min-height: 44px;
+      border: 0;
+      border-radius: calc(var(--rounded-md) - 2px);
+      background: transparent;
+      color: var(--on-surface);
+      font-weight: 500;
+      font-size: 0.875rem;
+      padding: var(--space-xs) var(--space-sm);
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+    .seg-btn:hover {
+      background: var(--surface-container-high);
+    }
+    .seg-btn.is-active {
+      background: var(--surface-white);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .seg-sub {
+      font-size: 0.7rem;
+      color: var(--on-surface-variant);
+      font-weight: 400;
+    }
+    .seg-btn.is-active .seg-sub {
+      color: var(--on-primary-container);
+    }
+
+    /* Preset size chips */
+    .preset-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+    .preset-chip {
+      min-height: 44px;
+      min-width: 58px;
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--rounded);
+      border: 0;
+      background: var(--surface-white);
+      color: var(--on-surface);
+      font-weight: 500;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+      font-variant-numeric: tabular-nums;
+    }
+    .preset-chip:hover {
+      background: var(--surface-container);
+    }
+    .preset-chip.is-active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-weight: 600;
+    }
+    .preset-chip.is-large-chip {
+      color: var(--secondary);
+    }
+    .preset-chip.is-large-chip.is-active {
+      background: var(--warning-container);
+      color: var(--on-warning-container);
+    }
+
+    /* Inputs */
+    .input-row {
+      display: flex;
+      align-items: end;
+      gap: var(--space-sm);
+    }
+    .input-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .text-input {
+      width: 100%;
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded-md);
+      border: 1px solid var(--outline);
+      background: var(--surface-white);
+      color: var(--on-surface);
+      font-size: 0.9375rem;
+      font-variant-numeric: tabular-nums;
+      transition: box-shadow var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .text-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-container);
+      outline: none;
+    }
+    .text-input.is-invalid {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px var(--error-container);
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+      background: var(--surface-white);
+      color: var(--on-surface-variant);
+      font-size: var(--label-size);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Inline notices */
+    .notice-box {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded-md);
+      font-size: 0.8125rem;
+      line-height: 1.45;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .notice-warning {
+      background: var(--warning-container);
+      color: var(--on-warning-container);
+    }
+    .notice-error {
+      background: var(--error-container);
+      color: var(--on-error-container);
+    }
+    .notice-positive {
+      background: var(--positive-container);
+      color: var(--on-positive-container);
+    }
+    .notice-info {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+    .suggestion-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      margin-top: var(--space-xs);
+    }
+    .mini-chip-btn {
+      min-height: 36px;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+      border: 0;
+      background: var(--surface-white);
+      color: var(--on-surface);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Treatment 3: Pill actions */
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-radius: var(--rounded);
+      font: 600 0.9375rem/1.2 var(--font-label);
+      min-height: 46px;
+      padding: var(--space-sm) var(--space-lg);
+      border: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      transition: background-color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--on-primary-container);
+    }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--surface-white);
+      color: var(--on-surface);
+      border-radius: var(--rounded);
+      font: 500 0.875rem/1.2 var(--font-label);
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      border: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-container);
+    }
+    .btn-secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-secondary.is-active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-weight: 600;
+    }
+    .btn-secondary.is-armed {
+      background: var(--error-container);
+      color: var(--on-error-container);
+      font-weight: 600;
+    }
+
+    .btn-warning {
+      background: var(--secondary);
+      color: var(--on-primary);
+      border-radius: var(--rounded);
+      font: 600 0.9375rem/1.2 var(--font-label);
+      min-height: 46px;
+      padding: var(--space-sm) var(--space-lg);
+      border: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+    }
+
+    .btn-full { width: 100%; }
+
+    /* Stats row */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-sm);
+    }
+    .stat-box {
+      background: var(--surface-white);
+      border-radius: var(--rounded-md);
+      padding: var(--space-sm) var(--space-sm);
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+      display: block;
+    }
+    .stat-val {
+      font-family: var(--font-headline);
+      font-size: 1.1875rem;
+      font-weight: 700;
+      letter-spacing: var(--figure-tracking);
+      color: var(--on-surface);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Main Board Tile */
+    .board-tile {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .board-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+    .board-badges {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .chip-blue {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--rounded);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Zoom bar for large grids */
+    .zoom-controls {
+      display: none;
+      align-items: center;
+      gap: var(--space-xs);
+      background: var(--surface-white);
+      padding: var(--space-xs);
+      border-radius: var(--rounded);
+    }
+    .zoom-controls.is-visible {
+      display: inline-flex;
+    }
+    .zoom-btn {
+      min-height: 36px;
+      min-width: 40px;
+      padding: 0 var(--space-sm);
+      border-radius: var(--rounded);
+      border: 0;
+      background: transparent;
+      color: var(--on-surface);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .zoom-btn.is-active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    /* Sudoku Viewport & Grid */
+    .board-viewport {
+      width: 100%;
+      overflow: auto;
+      background: var(--surface-white);
+      border-radius: var(--rounded-md);
+      padding: var(--space-sm);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      max-height: 72vh;
+      -webkit-overflow-scrolling: touch;
+    }
+    .sudoku-grid {
+      display: grid;
+      background: var(--on-surface);
+      border: 2.5px solid var(--on-surface);
+      user-select: none;
+      touch-action: manipulation;
+      flex-shrink: 0;
+      margin: auto;
+    }
+    .sudoku-cell {
+      background: var(--surface-white);
+      border: 0;
+      border-right: 1px solid var(--outline);
+      border-bottom: 1px solid var(--outline);
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      font-family: var(--font-body);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      transition: background-color var(--dur-micro) var(--ease-out);
+      aspect-ratio: 1 / 1;
+    }
+    .sudoku-cell.box-right {
+      border-right: 2.5px solid var(--on-surface);
+    }
+    .sudoku-cell.box-bottom {
+      border-bottom: 2.5px solid var(--on-surface);
+    }
+    .sudoku-cell.last-col {
+      border-right: 0;
+    }
+    .sudoku-cell.last-row {
+      border-bottom: 0;
+    }
+
+    /* Cell states */
+    .sudoku-cell.is-peer {
+      background: var(--primary-peer-bg);
+    }
+    .sudoku-cell.is-same-num {
+      background: var(--primary-container);
+    }
+    .sudoku-cell.is-selected {
+      background: var(--primary-container);
+      box-shadow: inset 0 0 0 2.5px var(--primary);
+      z-index: 2;
+    }
+    .sudoku-cell.is-clue {
+      font-weight: 700;
+      color: var(--on-surface);
+    }
+    .sudoku-cell.is-user {
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .sudoku-cell.is-hint {
+      font-weight: 600;
+      color: var(--positive);
+    }
+    .sudoku-cell.is-checked-ok {
+      background: var(--positive-container);
+      color: var(--on-positive-container);
+    }
+    .sudoku-cell.is-checked-err {
+      background: var(--error-container);
+      color: var(--on-error-container);
+      font-weight: 700;
+    }
+    .sudoku-cell.is-selected.is-checked-err {
+      box-shadow: inset 0 0 0 2.5px var(--error);
+    }
+
+    .cell-notes {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      padding: 1px;
+      align-items: center;
+      justify-items: center;
+      color: var(--on-surface-variant);
+      font-weight: 500;
+      line-height: 1;
+    }
+    .cell-notes-compact {
+      font-size: 0.52em;
+      color: var(--on-surface-variant);
+      padding: 2px;
+      text-align: center;
+      line-height: 1.1;
+      overflow: hidden;
+      word-break: break-word;
+    }
+
+    /* Toolbar */
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      align-items: center;
+    }
+    .action-bar .btn-primary {
+      flex: 1 1 200px;
+    }
+
+    /* Mobile-First Touch Keypad */
+    .keypad-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .keypad-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: var(--space-sm);
+    }
+    @media (min-width: 640px) {
+      .keypad-grid.is-classic {
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+      }
+      .keypad-grid.is-large {
+        grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+      }
+    }
+    .keypad-grid.is-large {
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 2px;
+    }
+    .key-btn {
+      min-height: 46px;
+      border-radius: var(--rounded-md);
+      border: 0;
+      background: var(--surface-white);
+      color: var(--on-surface);
+      font-family: var(--font-headline);
+      font-size: 1.0625rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+    .key-btn:hover:not(:disabled) {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+    .key-btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+    .key-btn.is-complete {
+      opacity: 0.42;
+      background: var(--surface-container);
+    }
+    .key-btn.is-erase {
+      background: var(--surface-container);
+      color: var(--on-surface);
+      font-size: 0.875rem;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--scrim);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-md);
+      z-index: 100;
+    }
+    .modal-backdrop.is-open {
+      display: flex;
+    }
+    .modal-card {
+      background: var(--background);
+      border-radius: var(--rounded-lg);
+      box-shadow: var(--shadow-modal);
+      width: 100%;
+      max-width: 520px;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-card.is-wide {
+      max-width: 980px;
+    }
+    .modal-header {
+      padding: var(--space-lg) var(--space-lg) var(--space-md);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-md);
+      background: var(--surface-white);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .modal-title {
+      font-family: var(--font-headline);
+      font-size: var(--headline-size);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .modal-body {
+      padding: var(--space-lg);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .modal-footer {
+      padding: var(--space-md) var(--space-lg);
+      background: var(--surface-white);
+      border-top: 1px solid var(--outline-variant);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: var(--space-sm);
+    }
+    .icon-close-btn {
+      min-height: 44px;
+      min-width: 44px;
+      border-radius: var(--rounded);
+      border: 0;
+      background: var(--surface-container-low);
+      color: var(--on-surface);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-close-btn:hover {
+      background: var(--surface-container);
+    }
+
+    /* Worksheet Preview Form & Sheets */
+    .ws-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+      gap: var(--space-md);
+      background: var(--surface-container-low);
+      padding: var(--space-md);
+      border-radius: var(--rounded-md);
+    }
+    .preview-scroll {
+      background: var(--surface-container);
+      border-radius: var(--rounded-md);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-lg);
+    }
+    .page-break-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--rounded);
+      background: var(--surface-white);
+      color: var(--on-surface-variant);
+      font-size: var(--label-size);
+      font-weight: 600;
+    }
+
+    /* A4 Paper Sheet Layout (shared between Preview and Print Portal) */
+    .a4-sheet {
+      background: var(--print-paper);
+      color: var(--print-ink);
+      width: 100%;
+      max-width: 680px;
+      box-shadow: var(--shadow-sheet);
+      border-radius: 4px;
+      padding: clamp(1rem, 3vw, 2.25rem);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .sheet-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      border-bottom: 2px solid var(--print-ink);
+      padding-bottom: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .sheet-tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border: 1.5px solid var(--print-ink);
+      border-radius: var(--rounded);
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .sheet-heading {
+      font-family: var(--font-headline);
+      font-size: clamp(1.125rem, 2vw, 1.5rem);
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .sheet-meta-line {
+      font-size: 0.8125rem;
+      color: var(--print-muted);
+      margin-top: 2px;
+    }
+    .sheet-fields {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: var(--space-md);
+      font-size: 0.875rem;
+      padding-top: var(--space-xs);
+    }
+    .sheet-field-line {
+      border-bottom: 1px solid var(--print-ink);
+      padding-bottom: 3px;
+      min-height: 24px;
+      display: flex;
+      gap: var(--space-xs);
+      align-items: baseline;
+    }
+    .sheet-instructions {
+      background: var(--surface-container-low);
+      border-left: 3px solid var(--print-ink);
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.8125rem;
+      line-height: 1.45;
+    }
+    .sheet-instructions-title {
+      font-weight: 700;
+      margin: 0 0 var(--space-xs);
+      font-size: 0.85rem;
+    }
+    .sheet-instructions ol {
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+    .sheet-instructions li + li {
+      margin-top: 2px;
+    }
+    .sheet-grid-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+    .sheet-grid-wrap svg {
+      width: 100%;
+      max-width: 520px;
+      height: auto;
+      display: block;
+    }
+    .sheet-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--print-muted);
+      border-top: 1px solid var(--outline);
+      padding-top: var(--space-xs);
+      margin-top: auto;
+    }
+
+    /* SVG Printable Classes (token-driven) */
+    .svg-paper { fill: var(--print-paper); }
+    .svg-line-thin { stroke: var(--outline); stroke-width: 1; }
+    .svg-line-box { stroke: var(--print-ink); stroke-width: 2.6; }
+    .svg-border-outer { fill: none; stroke: var(--print-ink); stroke-width: 4; }
+    .svg-num-clue {
+      fill: var(--print-ink);
+      font-family: var(--font-body);
+      font-weight: 700;
+    }
+    .svg-num-sol {
+      fill: var(--primary);
+      font-family: var(--font-body);
+      font-weight: 500;
+    }
+
+    /* Print portal hidden on screen */
+    .print-portal {
+      display: none;
+    }
+
+    /* Mobile Page-Level Adaptation */
+    @media (max-width: 640px) {
+      .page-grid {
+        padding: var(--space-sm);
+        gap: var(--space-md);
+      }
+      .headline-stack {
+        padding-block: var(--space-lg) var(--space-sm);
+      }
+      .tile {
+        padding: var(--space-md);
+      }
+      .sheet-fields {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+      }
+      .modal-body, .modal-header, .modal-footer {
+        padding: var(--space-md);
+      }
+    }
+
+    /* Dedicated Print Stylesheet: Page 1 = Worksheet, Page 2 = Separate Solution Sheet */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm;
+      }
+      html, body {
+        background: var(--print-paper);
+        color: var(--print-ink);
+        overflow: visible !important;
+      }
+      body > *:not(#print-portal) {
+        display: none !important;
+      }
+      #print-portal {
+        display: block !important;
+      }
+      #print-portal .a4-sheet {
+        box-shadow: none;
+        border-radius: 0;
+        max-width: 100%;
+        width: 100%;
+        padding: 0;
+        min-height: 266mm;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      #print-portal #print-sheet-1 {
+        page-break-after: always;
+        break-after: page;
+      }
+      #print-portal #print-sheet-2 {
+        page-break-before: always;
+        break-before: page;
+      }
+      #print-portal .sheet-grid-wrap svg {
+        max-width: 168mm;
+        max-height: 168mm;
+      }
+      #print-portal .svg-num-sol {
+        fill: var(--print-muted);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="headline-stack">
+    <p class="eyebrow">Interaktives Rätsel &amp; Arbeitsblatt-Studio</p>
+    <h1>Sudoku Generator</h1>
+    <p class="lede">Konfiguriere eigene Größen von 4×4 bis über 40×40, löse direkt im Browser oder erstelle druckfertige Arbeitsblätter mit separatem Lösungsblatt.</p>
+  </header>
+
+  <main class="page-grid">
+    <div class="tool-layout">
+      <!-- Left / Top Control Rail -->
+      <aside class="tile config-stack" aria-label="Einstellungen und Export">
+        <div>
+          <h2 class="tile-title">Konfiguration</h2>
+          <p class="tile-subtitle">Schwierigkeit, Rastergröße und Arbeitsblatt festlegen</p>
+        </div>
+
+        <div class="field-group">
+          <span class="field-label">Schwierigkeitsgrad</span>
+          <div class="segmented-grid" id="difficulty-group" role="group" aria-label="Schwierigkeitsgrad">
+            <button type="button" class="seg-btn" data-diff="leicht" onclick="selectDifficulty('leicht')">
+              <span>Leicht</span>
+              <span class="seg-sub">ca. 65 % Hinweise</span>
+            </button>
+            <button type="button" class="seg-btn is-active" data-diff="mittel" onclick="selectDifficulty('mittel')">
+              <span>Mittel</span>
+              <span class="seg-sub">ca. 50 % Hinweise</span>
+            </button>
+            <button type="button" class="seg-btn" data-diff="schwer" onclick="selectDifficulty('schwer')">
+              <span>Schwer</span>
+              <span class="seg-sub">ca. 35 % Hinweise</span>
+            </button>
+            <button type="button" class="seg-btn" data-diff="experte" onclick="selectDifficulty('experte')">
+              <span>Experte</span>
+              <span class="seg-sub">ca. 26 % Hinweise</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <span class="field-label">Schnellauswahl Spielfeldgröße</span>
+          <div class="preset-grid" id="size-presets" role="group" aria-label="Spielfeldgrößen">
+            <button type="button" class="preset-chip" data-size="4" onclick="selectPresetSize(4)">4×4</button>
+            <button type="button" class="preset-chip is-active" data-size="9" onclick="selectPresetSize(9)">9×9</button>
+            <button type="button" class="preset-chip" data-size="16" onclick="selectPresetSize(16)">16×16</button>
+            <button type="button" class="preset-chip" data-size="20" onclick="selectPresetSize(20)">20×20</button>
+            <button type="button" class="preset-chip" data-size="25" onclick="selectPresetSize(25)">25×25</button>
+            <button type="button" class="preset-chip" data-size="36" onclick="selectPresetSize(36)">36×36</button>
+            <button type="button" class="preset-chip" data-size="40" onclick="selectPresetSize(40)">40×40</button>
+            <button type="button" class="preset-chip is-large-chip" data-size="49" onclick="selectPresetSize(49)">49×49</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="input-row">
+            <div class="input-wrap">
+              <label class="field-label" for="custom-size-input">Freieingabe Größe (N × N, ab 4)</label>
+              <input type="number" id="custom-size-input" class="text-input" min="4" max="64" step="1" value="9" oninput="handleCustomSizeInput(this.value)">
+            </div>
+          </div>
+          <div id="size-meta-info" class="meta-pill">Unterteilung: 3 × 3 Blöcke · 81 Felder</div>
+          <div id="size-validation-box" class="notice-box notice-error" style="display: none;"></div>
+          <div id="large-size-inline-warning" class="notice-box notice-warning" style="display: none;">
+            <strong>Größe &gt; 40×40 gewählt:</strong> Vor dem Erstellen erfolgt ein deutlicher Warnhinweis zur sehr kleinen Darstellung.
+          </div>
+        </div>
+
+        <div class="field-group">
+          <button type="button" id="generate-btn" class="btn-primary btn-full" onclick="requestGeneratePuzzle()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            <span>Neues Sudoku erstellen</span>
+          </button>
+          <button type="button" class="btn-secondary btn-full" onclick="openWorksheetModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Arbeitsblatt &amp; PDF-Vorschau</span>
+          </button>
+        </div>
+
+        <div class="stats-grid" aria-label="Spielfortschritt">
+          <div class="stat-box">
+            <span class="stat-label">Zeit</span>
+            <span class="stat-val" id="stat-timer">00:00</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Ausgefüllt</span>
+            <span class="stat-val" id="stat-progress">0 / 81</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Tipps</span>
+            <span class="stat-val" id="stat-hints">0</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Interactive Sudoku Area -->
+      <section class="tile board-tile" aria-label="Interaktives Sudoku-Spielfeld">
+        <div class="board-header">
+          <div class="board-badges">
+            <span class="chip-blue" id="active-puzzle-badge">9×9 · Mittel · 3×3-Blöcke</span>
+          </div>
+          <div class="zoom-controls" id="zoom-controls" aria-label="Zoom-Steuerung">
+            <button type="button" class="zoom-btn is-active" data-zoom="fit" onclick="setBoardZoom('fit')">Einpassen</button>
+            <button type="button" class="zoom-btn" data-zoom="1.5" onclick="setBoardZoom(1.5)">150 %</button>
+            <button type="button" class="zoom-btn" data-zoom="2.2" onclick="setBoardZoom(2.2)">220 %</button>
+          </div>
+        </div>
+
+        <div id="game-feedback" class="notice-box notice-info" role="status" aria-live="polite" style="display: none;"></div>
+
+        <div class="board-viewport" id="board-viewport">
+          <div id="sudoku-grid" class="sudoku-grid" role="grid" aria-label="Sudoku-Gitter"></div>
+        </div>
+
+        <div class="action-bar">
+          <button type="button" class="btn-primary" onclick="checkAndCorrectBoard()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Bestätigen / Prüfen</span>
+          </button>
+          <button type="button" id="notes-toggle-btn" class="btn-secondary" aria-pressed="false" onclick="toggleNotesMode()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span>Notizen</span>
+          </button>
+          <button type="button" id="undo-btn" class="btn-secondary" disabled onclick="undoMove()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+            <span>Rückgängig</span>
+          </button>
+          <button type="button" class="btn-secondary" onclick="giveHint()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+            <span>Tipp</span>
+          </button>
+          <button type="button" id="reset-btn" class="btn-secondary" onclick="handleResetClick(this)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            <span>Zurücksetzen</span>
+          </button>
+        </div>
+
+        <div class="keypad-section" aria-label="Eingabe-Tastatur">
+          <div class="keypad-header">
+            <span class="field-label" id="keypad-mode-label">Touch-Nummernpad · Zahl eingeben (Tastatur &amp; Pfeiltasten aktiv)</span>
+            <button type="button" id="clear-errors-btn" class="mini-chip-btn" style="display: none;" onclick="clearCheckedErrors()">Fehlerhafte Felder leeren</button>
+          </div>
+          <div id="keypad-grid" class="keypad-grid is-classic"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Large Grid (> 40x40) Explicit Warning Modal -->
+  <div id="large-warning-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="large-warning-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Wichtiger Hinweis vor der Erstellung</p>
+          <h2 class="modal-title" id="large-warning-title">Extrem großes Spielfeld (<span id="warn-size-label">49×49</span>)</h2>
+        </div>
+        <button type="button" class="icon-close-btn" aria-label="Warnung schließen" onclick="closeLargeWarningModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="notice-box notice-warning">
+          <strong>Achtung – sehr kleine Darstellung:</strong>
+          <span>Bei Spielfeldern größer als <strong>40×40</strong> (<span id="warn-total-cells">2401</span> Felder) werden die Kästchen und Zahlen sowohl auf dem Bildschirm als auch beim Ausdruck auf A4- oder Letter-Papier <strong>extrem klein</strong> und schwer lesbar sein.</span>
+        </div>
+        <p style="margin: 0; color: var(--on-surface-variant);">
+          Für das Online-Spielen steht Ihnen anschließend eine Zoom-Funktion zur Verfügung. Möchten Sie das <strong id="warn-size-repeat">49×49</strong>-Sudoku wirklich erstellen?
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeLargeWarningModal()">Abbrechen</button>
+        <button type="button" class="btn-warning" onclick="confirmGenerateLargePuzzle()">Trotzdem generieren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Worksheet & PDF Preview Modal -->
+  <div id="worksheet-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="worksheet-modal-title">
+    <div class="modal-card is-wide">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Druck- &amp; PDF-Vorschau · 2 separate Blätter</p>
+          <h2 class="modal-title" id="worksheet-modal-title">Arbeitsblatt &amp; Lösungsblatt</h2>
+        </div>
+        <button type="button" class="icon-close-btn" aria-label="Vorschau schließen" onclick="closeWorksheetModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="ws-controls">
+          <div class="input-wrap">
+            <label class="field-label" for="ws-title-input">Titel des Arbeitsblatts</label>
+            <input type="text" id="ws-title-input" class="text-input" value="Sudoku-Übungsblatt" oninput="updateWorksheetPreview()">
+          </div>
+          <div class="input-wrap">
+            <label class="field-label" for="ws-name-input">Name (leer lassen für Schreiblinie)</label>
+            <input type="text" id="ws-name-input" class="text-input" value="" oninput="updateWorksheetPreview()">
+          </div>
+          <div class="input-wrap">
+            <label class="field-label" for="ws-date-input">Datum (leer lassen für Schreiblinie)</label>
+            <input type="text" id="ws-date-input" class="text-input" value="17.11.2026" oninput="updateWorksheetPreview()">
+          </div>
+        </div>
+
+        <div id="ws-large-print-note" class="notice-box notice-warning" style="display: none;">
+          <strong>Hinweis für den Druck (&gt; 40×40):</strong> Dieses Raster enthält extrem kleine Kästchen und Zahlen. Nutzen Sie beim PDF-Druck eine hohe Druckqualität.
+        </div>
+
+        <div class="preview-scroll" id="ws-preview-container">
+          <!-- Sheet 1 Preview -->
+          <div id="preview-sheet-1" class="a4-sheet"></div>
+          <div class="page-break-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            <span>Seitenumbruch · Das Lösungsblatt folgt auf einem separaten zweiten Blatt</span>
+          </div>
+          <!-- Sheet 2 Preview -->
+          <div id="preview-sheet-2" class="a4-sheet"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span style="margin-right: auto; font-size: var(--label-size); color: var(--on-surface-variant); align-self: center;">
+          Im Druckdialog „Als PDF sichern“ wählen, um beide Blätter als 2-seitiges PDF zu speichern.
+        </span>
+        <button type="button" class="btn-secondary" onclick="closeWorksheetModal()">Schließen</button>
+        <button type="button" class="btn-secondary" onclick="downloadWorksheetPngs()">Als 2 PNG-Bilder laden</button>
+        <button type="button" class="btn-primary" onclick="downloadWorksheetPdf()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>PDF / Arbeitsblatt herunterladen</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Top-Level Print Portal (Guarantees strict 2-page PDF print without modal clipping) -->
+  <div id="print-portal" class="print-portal" aria-hidden="true">
+    <div id="print-sheet-1" class="a4-sheet"></div>
+    <div id="print-sheet-2" class="a4-sheet"></div>
+  </div>
+
+  <api-shim></api-shim>
+  <script>
+    const DIFFICULTIES = {
+      leicht:  { label: `Leicht`,  clueRatio: 0.65 },
+      mittel:  { label: `Mittel`,  clueRatio: 0.50 },
+      schwer:  { label: `Schwer`,  clueRatio: 0.35 },
+      experte: { label: `Experte`, clueRatio: 0.26 }
+    };
+
+    const appState = {
+      pendingSize: 9,
+      pendingDifficulty: `mittel`,
+      size: 9,
+      boxR: 3,
+      boxC: 3,
+      difficulty: `mittel`,
+      puzzle: [],
+      solution: [],
+      userGrid: [],
+      hintedCells: {},
+      checkedState: {},
+      notes: {},
+      undoStack: [],
+      selected: null,
+      notesMode: false,
+      hintsUsed: 0,
+      elapsedSeconds: 0,
+      zoomMode: `fit`,
+      wsTitle: `Sudoku-Übungsblatt`,
+      wsName: ``,
+      wsDate: `17.11.2026`,
+      solvedNotified: false
+    };
+
+    let timerInterval = null;
+    let keyBuffer = ``;
+    let keyBufferTimeout = null;
+    let saveDebounceTimer = null;
+
+    function getSubgridDimensions(n) {
+      if (!Number.isInteger(n) || n < 4 || n > 64) return null;
+      let bestR = 1;
+      for (let r = Math.floor(Math.sqrt(n)); r >= 2; r--) {
+        if (n % r === 0) {
+          bestR = r;
+          break;
+        }
+      }
+      if (bestR === 1) return null; // Prime number cannot form R x C subgrids with R,C > 1
+      return { r: bestR, c: n / bestR };
+    }
+
+    function findNearestValidSizes(n) {
+      const suggestions = [];
+      for (let offset = 1; offset <= 12 && suggestions.length < 4; offset++) {
+        if (n - offset >= 4 && getSubgridDimensions(n - offset)) {
+          suggestions.push(n - offset);
+        }
+        if (n + offset <= 64 && getSubgridDimensions(n + offset)) {
+          suggestions.push(n + offset);
+        }
+      }
+      suggestions.sort(function (a, b) { return a - b; });
+      return suggestions;
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+      }
+      return arr;
+    }
+
+    function generateFullSudoku(n, boxR, boxC) {
+      // Base guaranteed-valid Sudoku matrix: ((r % R) * C + floor(r / R) + c) % N + 1
+      let grid = [];
+      for (let r = 0; r < n; r++) {
+        const row = new Array(n);
+        const shift = (r % boxR) * boxC + Math.floor(r / boxR);
+        for (let c = 0; c < n; c++) {
+          row[c] = ((shift + c) % n) + 1;
+        }
+        grid.push(row);
+      }
+
+      // Permute symbols
+      const symbols = [];
+      for (let v = 1; v <= n; v++) symbols.push(v);
+      shuffleArray(symbols);
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          grid[r][c] = symbols[grid[r][c] - 1];
+        }
+      }
+
+      // Shuffle rows within bands & bands themselves, columns within stacks & stacks themselves
+      for (let round = 0; round < 2; round++) {
+        const bandOrder = [];
+        for (let b = 0; b < boxC; b++) bandOrder.push(b);
+        shuffleArray(bandOrder);
+
+        const newGridRows = [];
+        for (let bi = 0; bi < bandOrder.length; bi++) {
+          const b = bandOrder[bi];
+          const innerRows = [];
+          for (let ir = 0; ir < boxR; ir++) innerRows.push(b * boxR + ir);
+          shuffleArray(innerRows);
+          for (let k = 0; k < innerRows.length; k++) {
+            newGridRows.push(grid[innerRows[k]]);
+          }
+        }
+        grid = newGridRows;
+
+        const stackOrder = [];
+        for (let s = 0; s < boxR; s++) stackOrder.push(s);
+        shuffleArray(stackOrder);
+
+        const colPerm = [];
+        for (let si = 0; si < stackOrder.length; si++) {
+          const s = stackOrder[si];
+          const innerCols = [];
+          for (let ic = 0; ic < boxC; ic++) innerCols.push(s * boxC + ic);
+          shuffleArray(innerCols);
+          for (let k = 0; k < innerCols.length; k++) {
+            colPerm.push(innerCols[k]);
+          }
+        }
+
+        const newGridCols = [];
+        for (let r = 0; r < n; r++) {
+          const row = new Array(n);
+          for (let c = 0; c < n; c++) {
+            row[c] = grid[r][colPerm[c]];
+          }
+          newGridCols.push(row);
+        }
+        grid = newGridCols;
+      }
+
+      // For square subgrids (boxR === boxC), optionally transpose 50% of the time
+      if (boxR === boxC && Math.random() < 0.5) {
+        const transposed = [];
+        for (let r = 0; r < n; r++) {
+          const row = new Array(n);
+          for (let c = 0; c < n; c++) {
+            row[c] = grid[c][r];
+          }
+          transposed.push(row);
+        }
+        grid = transposed;
+      }
+
+      return grid;
+    }
+
+    // Fast unique-solution checker for small/classic grids (N <= 9)
+    function countSolutionsLimited(board, n, boxR, boxC, limit) {
+      const rowMask = new Array(n).fill(0);
+      const colMask = new Array(n).fill(0);
+      const boxMask = new Array(n).fill(0);
+      const empties = [];
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const val = board[r][c];
+          if (val === 0) {
+            empties.push([r, c]);
+          } else {
+            const bit = 1 << val;
+            const b = Math.floor(r / boxR) * boxR + Math.floor(c / boxC);
+            rowMask[r] |= bit;
+            colMask[c] |= bit;
+            boxMask[b] |= bit;
+          }
+        }
+      }
+
+      const fullBits = ((1 << (n + 1)) - 2);
+      let solutions = 0;
+
+      function backtrack(idx) {
+        if (solutions >= limit) return;
+        if (idx === empties.length) {
+          solutions++;
+          return;
+        }
+        // Pick MRV cell among remaining
+        let bestIdx = idx;
+        let bestCount = n + 1;
+        let bestAvail = 0;
+        for (let i = idx; i < empties.length; i++) {
+          const rr = empties[i][0];
+          const cc = empties[i][1];
+          const bb = Math.floor(rr / boxR) * boxR + Math.floor(cc / boxC);
+          const avail = fullBits & ~(rowMask[rr] | colMask[cc] | boxMask[bb]);
+          if (avail === 0) return;
+          let count = 0;
+          let tmp = avail;
+          while (tmp) {
+            tmp &= tmp - 1;
+            count++;
+          }
+          if (count < bestCount) {
+            bestCount = count;
+            bestIdx = i;
+            bestAvail = avail;
+            if (count === 1) break;
+          }
+        }
+
+        const swap = empties[idx];
+        empties[idx] = empties[bestIdx];
+        empties[bestIdx] = swap;
+
+        const r = empties[idx][0];
+        const c = empties[idx][1];
+        const b = Math.floor(r / boxR) * boxR + Math.floor(c / boxC);
+
+        for (let v = 1; v <= n; v++) {
+          const bit = 1 << v;
+          if (bestAvail & bit) {
+            rowMask[r] |= bit;
+            colMask[c] |= bit;
+            boxMask[b] |= bit;
+            backtrack(idx + 1);
+            rowMask[r] &= ~bit;
+            colMask[c] &= ~bit;
+            boxMask[b] &= ~bit;
+            if (solutions >= limit) break;
+          }
+        }
+
+        const restore = empties[idx];
+        empties[idx] = empties[bestIdx];
+        empties[bestIdx] = restore;
+      }
+
+      backtrack(0);
+      return solutions;
+    }
+
+    function createPuzzleFromSolution(solution, n, boxR, boxC, difficultyKey) {
+      const diff = DIFFICULTIES[difficultyKey] || DIFFICULTIES.mittel;
+      const total = n * n;
+      const targetClues = Math.max(n, Math.round(total * diff.clueRatio));
+      const puzzle = solution.map(function (row) { return row.slice(); });
+
+      const coords = [];
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          coords.push([r, c]);
+        }
+      }
+      shuffleArray(coords);
+
+      let currentClues = total;
+      if (n <= 9) {
+        // Unique-solution removal for classic 4x4, 6x6, 8x8, 9x9
+        for (let i = 0; i < coords.length && currentClues > targetClues; i++) {
+          const r = coords[i][0];
+          const c = coords[i][1];
+          const saved = puzzle[r][c];
+          puzzle[r][c] = 0;
+          if (countSolutionsLimited(puzzle, n, boxR, boxC, 2) !== 1) {
+            puzzle[r][c] = saved;
+          } else {
+            currentClues--;
+          }
+        }
+      } else {
+        // Balanced fast removal for large grids (10x10 .. 64x64)
+        const boxCounts = new Array(n).fill(n);
+        const minPerBox = Math.max(1, Math.floor(n * diff.clueRatio * 0.65));
+        for (let i = 0; i < coords.length && currentClues > targetClues; i++) {
+          const r = coords[i][0];
+          const c = coords[i][1];
+          const b = Math.floor(r / boxR) * boxR + Math.floor(c / boxC);
+          if (boxCounts[b] > minPerBox) {
+            puzzle[r][c] = 0;
+            boxCounts[b]--;
+            currentClues--;
+          }
+        }
+        // Top-off removal if still above targetClues
+        for (let i = 0; i < coords.length && currentClues > targetClues; i++) {
+          const r = coords[i][0];
+          const c = coords[i][1];
+          if (puzzle[r][c] !== 0) {
+            puzzle[r][c] = 0;
+            currentClues--;
+          }
+        }
+      }
+
+      return puzzle;
+    }
+
+    function buildAndStartPuzzle(n, difficultyKey) {
+      const dims = getSubgridDimensions(n);
+      if (!dims) return;
+
+      const solution = generateFullSudoku(n, dims.r, dims.c);
+      const puzzle = createPuzzleFromSolution(solution, n, dims.r, dims.c, difficultyKey);
+
+      appState.size = n;
+      appState.boxR = dims.r;
+      appState.boxC = dims.c;
+      appState.difficulty = difficultyKey;
+      appState.solution = solution;
+      appState.puzzle = puzzle;
+      appState.userGrid = puzzle.map(function (row) { return row.slice(); });
+      appState.hintedCells = {};
+      appState.checkedState = {};
+      appState.notes = {};
+      appState.undoStack = [];
+      appState.selected = null;
+      appState.hintsUsed = 0;
+      appState.elapsedSeconds = 0;
+      appState.solvedNotified = false;
+      appState.zoomMode = `fit`;
+
+      clearFeedback();
+      renderAll();
+      startTimer();
+      scheduleSaveState();
+    }
+
+    // Hoisted UI Event Handlers
+    function selectDifficulty(diffKey) {
+      appState.pendingDifficulty = diffKey;
+      updateDifficultyButtons();
+    }
+
+    function selectPresetSize(n) {
+      appState.pendingSize = n;
+      const input = document.getElementById(`custom-size-input`);
+      if (input) input.value = String(n);
+      validateSizeInput(n);
+      updatePresetChips();
+    }
+
+    function handleCustomSizeInput(val) {
+      const parsed = parseInt(val, 10);
+      appState.pendingSize = isNaN(parsed) ? 0 : parsed;
+      validateSizeInput(appState.pendingSize);
+      updatePresetChips();
+    }
+
+    function applySuggestedSize(n) {
+      selectPresetSize(n);
+    }
+
+    function validateSizeInput(n) {
+      const input = document.getElementById(`custom-size-input`);
+      const meta = document.getElementById(`size-meta-info`);
+      const errBox = document.getElementById(`size-validation-box`);
+      const warnBox = document.getElementById(`large-size-inline-warning`);
+      const genBtn = document.getElementById(`generate-btn`);
+
+      if (!input || !meta || !errBox || !warnBox || !genBtn) return false;
+
+      if (!Number.isInteger(n) || n < 4 || n > 64) {
+        input.classList.add(`is-invalid`);
+        meta.style.display = `none`;
+        warnBox.style.display = `none`;
+        errBox.style.display = `flex`;
+        errBox.innerHTML = `<strong>Ungültige Größe:</strong> Bitte eine ganze Zahl zwischen 4 und 64 eingeben.`;
+        genBtn.disabled = true;
+        return false;
+      }
+
+      const dims = getSubgridDimensions(n);
+      if (!dims) {
+        const sugg = findNearestValidSizes(n);
+        input.classList.add(`is-invalid`);
+        meta.style.display = `none`;
+        warnBox.style.display = `none`;
+        errBox.style.display = `flex`;
+        let btns = ``;
+        for (let i = 0; i < sugg.length; i++) {
+          btns += `<button type="button" class="mini-chip-btn" onclick="applySuggestedSize(${sugg[i]})">${sugg[i]}×${sugg[i]} wählen</button>`;
+        }
+        errBox.innerHTML = `<strong>${n}×${n} nicht in Blöcke teilbar:</strong> Eine Primzahl lässt sich nicht in gleiche Unterblöcke (R × C = ${n}) teilen. Gültige Größen in der Nähe:<div class="suggestion-row">${btns}</div>`;
+        genBtn.disabled = true;
+        return false;
+      }
+
+      input.classList.remove(`is-invalid`);
+      errBox.style.display = `none`;
+      meta.style.display = `inline-flex`;
+      meta.textContent = `Unterteilung: ${dims.r} × ${dims.c} Blöcke · ${n * n} Felder`;
+      genBtn.disabled = false;
+
+      if (n > 40) {
+        warnBox.style.display = `flex`;
+      } else {
+        warnBox.style.display = `none`;
+      }
+      return true;
+    }
+
+    function requestGeneratePuzzle() {
+      const n = appState.pendingSize;
+      if (!validateSizeInput(n)) return;
+
+      if (n > 40) {
+        openLargeWarningModal(n);
+        return;
+      }
+      buildAndStartPuzzle(n, appState.pendingDifficulty);
+    }
+
+    function openLargeWarningModal(n) {
+      const modal = document.getElementById(`large-warning-modal`);
+      const lbl = document.getElementById(`warn-size-label`);
+      const rep = document.getElementById(`warn-size-repeat`);
+      const tot = document.getElementById(`warn-total-cells`);
+      if (lbl) lbl.textContent = `${n}×${n}`;
+      if (rep) rep.textContent = `${n}×${n}`;
+      if (tot) tot.textContent = String(n * n);
+      if (modal) modal.classList.add(`is-open`);
+    }
+
+    function closeLargeWarningModal() {
+      const modal = document.getElementById(`large-warning-modal`);
+      if (modal) modal.classList.remove(`is-open`);
+    }
+
+    function confirmGenerateLargePuzzle() {
+      closeLargeWarningModal();
+      buildAndStartPuzzle(appState.pendingSize, appState.pendingDifficulty);
+    }
+
+    function setBoardZoom(zoom) {
+      appState.zoomMode = zoom;
+      const btns = document.querySelectorAll(`.zoom-btn`);
+      for (let i = 0; i < btns.length; i++) {
+        const z = btns[i].dataset.zoom;
+        btns[i].classList.toggle(`is-active`, String(zoom) === z);
+      }
+      applyGridDimensions();
+    }
+
+    function selectCell(r, c) {
+      appState.selected = { r: r, c: c };
+      keyBuffer = ``;
+      renderGridHighlights();
+    }
+
+    function toggleNotesMode() {
+      appState.notesMode = !appState.notesMode;
+      updateNotesButton();
+    }
+
+    function inputNumber(num) {
+      if (!appState.puzzle || appState.puzzle.length === 0 || !appState.userGrid || appState.userGrid.length === 0) return;
+      if (!appState.selected) {
+        showFeedback(`Bitte zuerst ein leeres Feld im Spielfeld antippen.`, `info`);
+        return;
+      }
+      const r = appState.selected.r;
+      const c = appState.selected.c;
+      if (!appState.puzzle[r] || appState.puzzle[r][c] !== 0) {
+        showFeedback(`Vorgegebene Startzahlen können nicht verändert werden.`, `info`);
+        return;
+      }
+
+      const key = `${r},${c}`;
+      const prevVal = appState.userGrid[r][c];
+      const prevNotes = appState.notes[key] ? appState.notes[key].slice() : [];
+
+      if (appState.notesMode && num !== 0) {
+        // Toggle candidate note
+        const curr = appState.notes[key] ? appState.notes[key].slice() : [];
+        const idx = curr.indexOf(num);
+        if (idx >= 0) {
+          curr.splice(idx, 1);
+        } else {
+          curr.push(num);
+          curr.sort(function (a, b) { return a - b; });
+        }
+        appState.undoStack.push({ r: r, c: c, prevVal: prevVal, prevNotes: prevNotes });
+        appState.userGrid[r][c] = 0;
+        if (curr.length > 0) {
+          appState.notes[key] = curr;
+        } else {
+          delete appState.notes[key];
+        }
+        delete appState.checkedState[key];
+        delete appState.hintedCells[key];
+      } else {
+        // Place final value (or erase if num === 0)
+        if (prevVal === num && prevNotes.length === 0) return;
+        appState.undoStack.push({ r: r, c: c, prevVal: prevVal, prevNotes: prevNotes });
+        appState.userGrid[r][c] = num;
+        delete appState.notes[key];
+        delete appState.checkedState[key];
+        delete appState.hintedCells[key];
+
+        if (num !== 0) {
+          clearPeerNotes(r, c, num);
+        }
+      }
+
+      clearFeedback();
+      renderGridCells();
+      renderKeypad();
+      updateStats();
+      updateUndoButton();
+      checkAutoCompletion();
+      scheduleSaveState();
+    }
+
+    function clearPeerNotes(row, col, val) {
+      const n = appState.size;
+      const brStart = Math.floor(row / appState.boxR) * appState.boxR;
+      const bcStart = Math.floor(col / appState.boxC) * appState.boxC;
+
+      for (let i = 0; i < n; i++) {
+        removeNoteAt(row, i, val);
+        removeNoteAt(i, col, val);
+      }
+      for (let dr = 0; dr < appState.boxR; dr++) {
+        for (let dc = 0; dc < appState.boxC; dc++) {
+          removeNoteAt(brStart + dr, bcStart + dc, val);
+        }
+      }
+    }
+
+    function removeNoteAt(r, c, val) {
+      const key = `${r},${c}`;
+      const arr = appState.notes[key];
+      if (!arr) return;
+      const idx = arr.indexOf(val);
+      if (idx >= 0) {
+        arr.splice(idx, 1);
+        if (arr.length === 0) delete appState.notes[key];
+      }
+    }
+
+    function undoMove() {
+      if (appState.undoStack.length === 0) return;
+      const last = appState.undoStack.pop();
+      const key = `${last.r},${last.c}`;
+      appState.userGrid[last.r][last.c] = last.prevVal;
+      if (last.prevNotes && last.prevNotes.length > 0) {
+        appState.notes[key] = last.prevNotes.slice();
+      } else {
+        delete appState.notes[key];
+      }
+      delete appState.checkedState[key];
+      appState.selected = { r: last.r, c: last.c };
+
+      clearFeedback();
+      renderGridCells();
+      renderKeypad();
+      updateStats();
+      updateUndoButton();
+      scheduleSaveState();
+    }
+
+    function giveHint() {
+      if (!appState.puzzle || appState.puzzle.length === 0 || !appState.solution || appState.solution.length === 0) return;
+      const n = appState.size;
+      let target = null;
+
+      if (appState.selected) {
+        const sr = appState.selected.r;
+        const sc = appState.selected.c;
+        if (appState.puzzle[sr][sc] === 0 && appState.userGrid[sr][sc] !== appState.solution[sr][sc]) {
+          target = { r: sr, c: sc };
+        }
+      }
+
+      if (!target) {
+        const candidates = [];
+        for (let r = 0; r < n; r++) {
+          for (let c = 0; c < n; c++) {
+            if (appState.puzzle[r][c] === 0 && appState.userGrid[r][c] !== appState.solution[r][c]) {
+              candidates.push({ r: r, c: c });
+            }
+          }
+        }
+        if (candidates.length === 0) {
+          showFeedback(`Alle Felder sind bereits korrekt ausgefüllt!`, `positive`);
+          return;
+        }
+        target = candidates[Math.floor(Math.random() * candidates.length)];
+      }
+
+      const key = `${target.r},${target.c}`;
+      const prevVal = appState.userGrid[target.r][target.c];
+      const prevNotes = appState.notes[key] ? appState.notes[key].slice() : [];
+      appState.undoStack.push({ r: target.r, c: target.c, prevVal: prevVal, prevNotes: prevNotes });
+
+      const correctVal = appState.solution[target.r][target.c];
+      appState.userGrid[target.r][target.c] = correctVal;
+      delete appState.notes[key];
+      appState.checkedState[key] = `ok`;
+      appState.hintedCells[key] = true;
+      appState.hintsUsed++;
+      appState.selected = { r: target.r, c: target.c };
+      clearPeerNotes(target.r, target.c, correctVal);
+
+      showFeedback(`Tipp eingesetzt: Zahl ${correctVal} in Zeile ${target.r + 1}, Spalte ${target.c + 1}.`, `info`);
+      renderGridCells();
+      renderKeypad();
+      updateStats();
+      updateUndoButton();
+      checkAutoCompletion();
+      scheduleSaveState();
+    }
+
+    function hasRuleConflict(grid, row, col, val) {
+      const n = appState.size;
+      for (let i = 0; i < n; i++) {
+        if (i !== col && grid[row][i] === val) return true;
+        if (i !== row && grid[i][col] === val) return true;
+      }
+      const br = Math.floor(row / appState.boxR) * appState.boxR;
+      const bc = Math.floor(col / appState.boxC) * appState.boxC;
+      for (let dr = 0; dr < appState.boxR; dr++) {
+        for (let dc = 0; dc < appState.boxC; dc++) {
+          const rr = br + dr;
+          const cc = bc + dc;
+          if ((rr !== row || cc !== col) && grid[rr][cc] === val) return true;
+        }
+      }
+      return false;
+    }
+
+    function isBoardValidlySolved(grid) {
+      const n = appState.size;
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const v = grid[r][c];
+          if (v < 1 || v > n || hasRuleConflict(grid, r, c, v)) return false;
+        }
+      }
+      return true;
+    }
+
+    function checkAndCorrectBoard() {
+      if (!appState.puzzle || appState.puzzle.length === 0 || !appState.userGrid || appState.userGrid.length === 0) return;
+      const n = appState.size;
+      appState.checkedState = {};
+      let userFilled = 0;
+      let okCount = 0;
+      let errCount = 0;
+
+      // First check if the entire board is validly solved under Sudoku rules (even if alternate completion)
+      let allFilled = true;
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (appState.userGrid[r][c] === 0) {
+            allFilled = false;
+            break;
+          }
+        }
+        if (!allFilled) break;
+      }
+
+      if (allFilled && isBoardValidlySolved(appState.userGrid)) {
+        for (let r = 0; r < n; r++) {
+          for (let c = 0; c < n; c++) {
+            if (appState.puzzle[r][c] === 0) {
+              appState.checkedState[`${r},${c}`] = `ok`;
+              okCount++;
+            }
+          }
+        }
+        appState.solvedNotified = true;
+        stopTimer();
+        showFeedback(`Glückwunsch! Das ${n}×${n}-Sudoku wurde vollständig und fehlerfrei gelöst.`, `positive`);
+        toggleClearErrorsBtn(false);
+        renderGridCells();
+        scheduleSaveState();
+        return;
+      }
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (appState.puzzle[r][c] === 0 && appState.userGrid[r][c] !== 0) {
+            userFilled++;
+            const val = appState.userGrid[r][c];
+            const key = `${r},${c}`;
+            if (val === appState.solution[r][c] && !hasRuleConflict(appState.userGrid, r, c, val)) {
+              appState.checkedState[key] = `ok`;
+              okCount++;
+            } else {
+              appState.checkedState[key] = `err`;
+              errCount++;
+            }
+          }
+        }
+      }
+
+      if (userFilled === 0) {
+        showFeedback(`Noch keine eigenen Zahlen eingetragen. Tippen Sie auf ein freies Feld und wählen Sie eine Zahl.`, `info`);
+        toggleClearErrorsBtn(false);
+      } else if (errCount === 0) {
+        showFeedback(`Sehr gut! Alle ${okCount} bisher eingetragenen Felder sind korrekt.`, `positive`);
+        toggleClearErrorsBtn(false);
+      } else {
+        showFeedback(`${okCount} korrekt, ${errCount} fehlerhafte Eingabe${errCount === 1 ? `` : `n`} rot markiert.`, `error`);
+        toggleClearErrorsBtn(true);
+      }
+
+      renderGridCells();
+      scheduleSaveState();
+    }
+
+    function clearCheckedErrors() {
+      let removed = 0;
+      const keys = Object.keys(appState.checkedState);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (appState.checkedState[key] === `err`) {
+          const parts = key.split(`,`);
+          const r = parseInt(parts[0], 10);
+          const c = parseInt(parts[1], 10);
+          if (appState.puzzle[r][c] === 0) {
+            appState.userGrid[r][c] = 0;
+            delete appState.checkedState[key];
+            removed++;
+          }
+        }
+      }
+      toggleClearErrorsBtn(false);
+      if (removed > 0) {
+        showFeedback(`${removed} fehlerhaftes Feld / Felder wurden geleert.`, `info`);
+      }
+      renderGridCells();
+      renderKeypad();
+      updateStats();
+      scheduleSaveState();
+    }
+
+    function toggleClearErrorsBtn(show) {
+      const btn = document.getElementById(`clear-errors-btn`);
+      if (btn) btn.style.display = show ? `inline-flex` : `none`;
+    }
+
+    function checkAutoCompletion() {
+      if (!appState.userGrid || appState.userGrid.length === 0) return;
+      const n = appState.size;
+      for (let r = 0; r < n; r++) {
+        const row = appState.userGrid[r];
+        if (!row) return;
+        for (let c = 0; c < n; c++) {
+          if (row[c] === 0) return;
+        }
+      }
+      if (isBoardValidlySolved(appState.userGrid) && !appState.solvedNotified) {
+        appState.solvedNotified = true;
+        stopTimer();
+        showFeedback(`Glückwunsch! Das ${n}×${n}-Sudoku ist vollständig gelöst (${formatTime(appState.elapsedSeconds)}).`, `positive`);
+      }
+    }
+
+    function handleResetClick(btn) {
+      if (!btn) return;
+      if (btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.classList.add(`is-armed`);
+        const span = btn.querySelector(`span`);
+        if (span) span.textContent = `Erneut tippen!`;
+        setTimeout(function () {
+          if (btn.dataset.armed === `true`) {
+            btn.dataset.armed = `false`;
+            btn.classList.remove(`is-armed`);
+            const s = btn.querySelector(`span`);
+            if (s) s.textContent = `Zurücksetzen`;
+          }
+        }, 3500);
+        return;
+      }
+
+      btn.dataset.armed = `false`;
+      btn.classList.remove(`is-armed`);
+      const span = btn.querySelector(`span`);
+      if (span) span.textContent = `Zurücksetzen`;
+
+      appState.userGrid = appState.puzzle.map(function (row) { return row.slice(); });
+      appState.notes = {};
+      appState.checkedState = {};
+      appState.hintedCells = {};
+      appState.undoStack = [];
+      appState.elapsedSeconds = 0;
+      appState.hintsUsed = 0;
+      appState.solvedNotified = false;
+      toggleClearErrorsBtn(false);
+      showFeedback(`Spielfeld auf die Ausgangsvorgaben zurückgesetzt.`, `info`);
+      renderAll();
+      startTimer();
+      scheduleSaveState();
+    }
+
+    // Worksheet & Print Modal
+    function openWorksheetModal() {
+      const modal = document.getElementById(`worksheet-modal`);
+      const titleIn = document.getElementById(`ws-title-input`);
+      const nameIn = document.getElementById(`ws-name-input`);
+      const dateIn = document.getElementById(`ws-date-input`);
+      const largeNote = document.getElementById(`ws-large-print-note`);
+
+      if (titleIn) titleIn.value = appState.wsTitle || `Sudoku-Übungsblatt`;
+      if (nameIn) nameIn.value = appState.wsName || ``;
+      if (dateIn) dateIn.value = appState.wsDate !== undefined ? appState.wsDate : `17.11.2026`;
+      if (largeNote) largeNote.style.display = appState.size > 40 ? `flex` : `none`;
+
+      updateWorksheetPreview();
+      if (modal) modal.classList.add(`is-open`);
+    }
+
+    function closeWorksheetModal() {
+      const modal = document.getElementById(`worksheet-modal`);
+      if (modal) modal.classList.remove(`is-open`);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, `&amp;`)
+        .replace(/</g, `&lt;`)
+        .replace(/>/g, `&gt;`)
+        .replace(/"/g, `&quot;`);
+    }
+
+    function buildPrintableSvg(isSolution) {
+      if (!appState.puzzle || appState.puzzle.length === 0 || !appState.solution || appState.solution.length === 0) {
+        return ``;
+      }
+      const n = appState.size;
+      const boxR = appState.boxR;
+      const boxC = appState.boxC;
+      const sizePx = 1000;
+      const cell = sizePx / n;
+      const fontSize = Math.max(8.5, Math.min(44, cell * 0.54));
+
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sizePx} ${sizePx}" role="img" aria-label="${isSolution ? `Lösungsgitter` : `Sudoku-Rätselgitter`}">`;
+      svg += `<rect x="0" y="0" width="${sizePx}" height="${sizePx}" class="svg-paper"/>`;
+
+      // Grid lines
+      for (let i = 1; i < n; i++) {
+        const pos = (i * cell).toFixed(2);
+        const isRowBox = (i % boxR === 0);
+        const isColBox = (i % boxC === 0);
+        svg += `<line x1="0" y1="${pos}" x2="${sizePx}" y2="${pos}" class="${isRowBox ? `svg-line-box` : `svg-line-thin`}"/>`;
+        svg += `<line x1="${pos}" y1="0" x2="${pos}" y2="${sizePx}" class="${isColBox ? `svg-line-box` : `svg-line-thin`}"/>`;
+      }
+
+      svg += `<rect x="2" y="2" width="${sizePx - 4}" height="${sizePx - 4}" class="svg-border-outer"/>`;
+
+      // Numbers
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const clueRow = appState.puzzle[r];
+          const solRow = appState.solution[r];
+          if (!clueRow || !solRow) continue;
+          const clue = clueRow[c];
+          const val = isSolution ? solRow[c] : clue;
+          if (val !== 0) {
+            const x = (c * cell + cell / 2).toFixed(2);
+            const y = (r * cell + cell / 2 + fontSize * 0.36).toFixed(2);
+            const cls = (clue !== 0) ? `svg-num-clue` : `svg-num-sol`;
+            svg += `<text x="${x}" y="${y}" text-anchor="middle" font-size="${fontSize.toFixed(1)}" class="${cls}">${val}</text>`;
+          }
+        }
+      }
+      svg += `</svg>`;
+      return svg;
+    }
+
+    function renderSheetHtml(isSolution) {
+      const n = appState.size;
+      const diffLabel = (DIFFICULTIES[appState.difficulty] || DIFFICULTIES.mittel).label;
+      const title = escapeHtml(appState.wsTitle || `Sudoku-Übungsblatt`);
+      const nameText = appState.wsName ? escapeHtml(appState.wsName) : ``;
+      const dateText = appState.wsDate ? escapeHtml(appState.wsDate) : ``;
+      const svgMarkup = buildPrintableSvg(isSolution);
+
+      if (!isSolution) {
+        return `
+          <div class="sheet-top-bar">
+            <div>
+              <span class="sheet-tag">ARBEITSBLATT · BLATT 1</span>
+              <h3 class="sheet-heading">${title}</h3>
+              <div class="sheet-meta-line">Raster: ${n}×${n} · Unterblöcke: ${appState.boxR}×${appState.boxC} · Schwierigkeit: ${diffLabel}</div>
+            </div>
+          </div>
+          <div class="sheet-fields">
+            <div class="sheet-field-line"><strong>Name:</strong><span>${nameText}</span></div>
+            <div class="sheet-field-line"><strong>Datum:</strong><span>${dateText}</span></div>
+          </div>
+          <div class="sheet-instructions">
+            <p class="sheet-instructions-title">Anweisungen zur Lösung</p>
+            <ol>
+              <li>Fülle alle leeren Felder so mit den Zahlen von <strong>1 bis ${n}</strong> aus, dass jede Zahl in jeder <strong>Zeile</strong> genau einmal vorkommt.</li>
+              <li>Jede Zahl von <strong>1 bis ${n}</strong> darf in jeder <strong>Spalte</strong> genau einmal vorkommen.</li>
+              <li>Jeder fett umrandete <strong>${appState.boxR}×${appState.boxC}-Block</strong> muss alle Zahlen von <strong>1 bis ${n}</strong> genau einmal enthalten.</li>
+              <li>Nutze die vorgegebenen Zahlen als Startpunkte und trage pro Kästchen nur eine Zahl ein.</li>
+            </ol>
+          </div>
+          <div class="sheet-grid-wrap">${svgMarkup}</div>
+          <div class="sheet-footer">
+            <span>${title} · ${n}×${n} (${diffLabel})</span>
+            <span>Blatt 1 von 2 · Arbeitsblatt</span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="sheet-top-bar">
+          <div>
+            <span class="sheet-tag">LÖSUNGSBLATT · SEPARATES EXTRA-BLATT</span>
+            <h3 class="sheet-heading">Lösungsblatt: ${title}</h3>
+            <div class="sheet-meta-line">Raster: ${n}×${n} · Unterblöcke: ${appState.boxR}×${appState.boxC} · Schwierigkeit: ${diffLabel}</div>
+          </div>
+        </div>
+        <div class="sheet-fields">
+          <div class="sheet-field-line"><strong>Name:</strong><span>${nameText}</span></div>
+          <div class="sheet-field-line"><strong>Datum:</strong><span>${dateText}</span></div>
+        </div>
+        <div class="sheet-instructions">
+          <p class="sheet-instructions-title">Hinweis zum Lösungsblatt</p>
+          <span>Dunkel fett gedruckte Zahlen entsprechen den Ausgangsvorgaben auf Blatt 1; farbige bzw. feiner gedruckte Zahlen zeigen die vollständige Lösung.</span>
+        </div>
+        <div class="sheet-grid-wrap">${svgMarkup}</div>
+        <div class="sheet-footer">
+          <span>Lösungsblatt zu „${title}“</span>
+          <span>Blatt 2 von 2 · Separates Lösungsblatt</span>
+        </div>
+      `;
+    }
+
+    function updateWorksheetPreview() {
+      const titleIn = document.getElementById(`ws-title-input`);
+      const nameIn = document.getElementById(`ws-name-input`);
+      const dateIn = document.getElementById(`ws-date-input`);
+
+      appState.wsTitle = titleIn ? titleIn.value : `Sudoku-Übungsblatt`;
+      appState.wsName = nameIn ? nameIn.value : ``;
+      appState.wsDate = dateIn ? dateIn.value : ``;
+
+      const s1Html = renderSheetHtml(false);
+      const s2Html = renderSheetHtml(true);
+
+      const p1 = document.getElementById(`preview-sheet-1`);
+      const p2 = document.getElementById(`preview-sheet-2`);
+      const pr1 = document.getElementById(`print-sheet-1`);
+      const pr2 = document.getElementById(`print-sheet-2`);
+
+      if (p1) p1.innerHTML = s1Html;
+      if (p2) p2.innerHTML = s2Html;
+      if (pr1) pr1.innerHTML = s1Html;
+      if (pr2) pr2.innerHTML = s2Html;
+
+      scheduleSaveState();
+    }
+
+    function downloadWorksheetPdf() {
+      updateWorksheetPreview();
+      window.print();
+    }
+
+    function renderSheetToCanvasPngBase64(isSolution) {
+      if (!appState.puzzle || appState.puzzle.length === 0 || !appState.solution || appState.solution.length === 0) {
+        return null;
+      }
+      const canvas = document.createElement(`canvas`);
+      const W = 1240;
+      const H = 1754;
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext(`2d`);
+      if (!ctx) return null;
+
+      const styles = getComputedStyle(document.documentElement);
+      const paper = styles.getPropertyValue(`--print-paper`).trim() || `#ffffff`;
+      const ink = styles.getPropertyValue(`--print-ink`).trim() || `#000000`;
+      const muted = styles.getPropertyValue(`--print-muted`).trim() || `#525257`;
+      const primary = styles.getPropertyValue(`--primary`).trim() || `#006bd6`;
+      const outline = styles.getPropertyValue(`--outline`).trim() || `#d2d2d7`;
+      const tint = styles.getPropertyValue(`--surface-container-low`).trim() || `#f5f5f7`;
+
+      ctx.fillStyle = paper;
+      ctx.fillRect(0, 0, W, H);
+
+      const margin = 84;
+      const contentW = W - margin * 2;
+      const n = appState.size || 9;
+      const diffLabel = (DIFFICULTIES[appState.difficulty] || DIFFICULTIES.mittel).label;
+      const title = appState.wsTitle || `Sudoku-Übungsblatt`;
+
+      // Header tag
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 2;
+      const tagText = isSolution ? `LÖSUNGSBLATT · SEPARATES EXTRA-BLATT` : `ARBEITSBLATT · BLATT 1`;
+      ctx.font = `bold 18px Inter, sans-serif`;
+      const tagW = ctx.measureText(tagText).width + 28;
+      ctx.strokeRect(margin, margin, tagW, 34);
+      ctx.fillStyle = ink;
+      ctx.fillText(tagText, margin + 14, margin + 23);
+
+      // Title
+      ctx.font = `bold 38px Inter, sans-serif`;
+      ctx.fillText(isSolution ? `Lösungsblatt: ${title}` : title, margin, margin + 84);
+
+      ctx.fillStyle = muted;
+      ctx.font = `22px Inter, sans-serif`;
+      ctx.fillText(`Raster: ${n}×${n} · Blöcke: ${appState.boxR}×${appState.boxC} · Schwierigkeit: ${diffLabel}`, margin, margin + 120);
+
+      // Divider
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(margin, margin + 142);
+      ctx.lineTo(W - margin, margin + 142);
+      ctx.stroke();
+
+      // Name & Date lines
+      ctx.fillStyle = ink;
+      ctx.font = `bold 22px Inter, sans-serif`;
+      ctx.fillText(`Name: ${appState.wsName || ``}`, margin, margin + 190);
+      ctx.fillText(`Datum: ${appState.wsDate || ``}`, margin + contentW * 0.62, margin + 190);
+
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(margin, margin + 200);
+      ctx.lineTo(margin + contentW * 0.58, margin + 200);
+      ctx.moveTo(margin + contentW * 0.62, margin + 200);
+      ctx.lineTo(W - margin, margin + 200);
+      ctx.stroke();
+
+      // Instructions box
+      ctx.fillStyle = tint;
+      const instrTop = margin + 230;
+      const instrH = isSolution ? 92 : 176;
+      ctx.fillRect(margin, instrTop, contentW, instrH);
+      ctx.fillStyle = ink;
+      ctx.fillRect(margin, instrTop, 6, instrH);
+
+      ctx.font = `bold 21px Inter, sans-serif`;
+      ctx.fillText(isSolution ? `Hinweis zum Lösungsblatt` : `Anweisungen zur Lösung`, margin + 24, instrTop + 34);
+      ctx.font = `19px Inter, sans-serif`;
+      if (!isSolution) {
+        ctx.fillText(`1. Jede Zeile muss alle Zahlen von 1 bis ${n} genau einmal enthalten.`, margin + 24, instrTop + 68);
+        ctx.fillText(`2. Jede Spalte muss alle Zahlen von 1 bis ${n} genau einmal enthalten.`, margin + 24, instrTop + 98);
+        ctx.fillText(`3. Jeder fett umrandete ${appState.boxR}×${appState.boxC}-Block enthält die Zahlen 1 bis ${n}.`, margin + 24, instrTop + 128);
+        ctx.fillText(`4. Vorgegebene Zahlen nutzen – pro Kästchen genau eine Zahl eintragen.`, margin + 24, instrTop + 158);
+      } else {
+        ctx.fillText(`Dunkle fette Zahlen sind Vorgaben von Blatt 1; blaue Zahlen sind die Lösung.`, margin + 24, instrTop + 68);
+      }
+
+      // Grid
+      const gridSize = 980;
+      const gx = (W - gridSize) / 2;
+      const gy = instrTop + instrH + 48;
+      const cell = gridSize / n;
+
+      ctx.fillStyle = paper;
+      ctx.fillRect(gx, gy, gridSize, gridSize);
+
+      for (let i = 1; i < n; i++) {
+        const pos = i * cell;
+        ctx.strokeStyle = (i % appState.boxR === 0) ? ink : outline;
+        ctx.lineWidth = (i % appState.boxR === 0) ? 3 : 1;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy + pos);
+        ctx.lineTo(gx + gridSize, gy + pos);
+        ctx.stroke();
+
+        ctx.strokeStyle = (i % appState.boxC === 0) ? ink : outline;
+        ctx.lineWidth = (i % appState.boxC === 0) ? 3 : 1;
+        ctx.beginPath();
+        ctx.moveTo(gx + pos, gy);
+        ctx.lineTo(gx + pos, gy + gridSize);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 4.5;
+      ctx.strokeRect(gx, gy, gridSize, gridSize);
+
+      const numSize = Math.max(9, Math.min(46, cell * 0.54));
+      ctx.textAlign = `center`;
+      ctx.textBaseline = `middle`;
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const clueRow = appState.puzzle[r];
+          const solRow = appState.solution[r];
+          if (!clueRow || !solRow) continue;
+          const clue = clueRow[c];
+          const val = isSolution ? solRow[c] : clue;
+          if (val !== 0) {
+            ctx.fillStyle = clue !== 0 ? ink : primary;
+            ctx.font = `${clue !== 0 ? `bold` : `500`} ${numSize.toFixed(1)}px Inter, sans-serif`;
+            ctx.fillText(String(val), gx + c * cell + cell / 2, gy + r * cell + cell / 2 + 1);
+          }
+        }
+      }
+
+      // Footer
+      ctx.textAlign = `left`;
+      ctx.textBaseline = `alphabetic`;
+      ctx.fillStyle = muted;
+      ctx.font = `18px Inter, sans-serif`;
+      ctx.fillText(isSolution ? `Lösungsblatt zu „${title}“` : `${title} · ${n}×${n} (${diffLabel})`, margin, H - 54);
+      ctx.textAlign = `right`;
+      ctx.fillText(isSolution ? `Blatt 2 von 2 · Separates Lösungsblatt` : `Blatt 1 von 2 · Arbeitsblatt`, W - margin, H - 54);
+
+      if (typeof canvas.toDataURL !== `function`) return null;
+      const dataUrl = canvas.toDataURL(`image/png`);
+      if (!dataUrl || typeof dataUrl !== `string`) return null;
+      return dataUrl.split(`,`)[1] || null;
+    }
+
+    function downloadWorksheetPngs() {
+      const n = appState.size;
+      const b1 = renderSheetToCanvasPngBase64(false);
+      const b2 = renderSheetToCanvasPngBase64(true);
+      if (!b1 || !b2) return;
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: b1,
+          contentType: `image/png`,
+          encoding: `base64`,
+          filename: `sudoku-${n}x${n}-arbeitsblatt-blatt1.png`
+        });
+        setTimeout(function () {
+          window.notebookAppApi.triggerFileDownload({
+            content: b2,
+            contentType: `image/png`,
+            encoding: `base64`,
+            filename: `sudoku-${n}x${n}-loesungsblatt-blatt2.png`
+          });
+        }, 350);
+      }
+    }
+
+    // Rendering Helpers
+    function updateDifficultyButtons() {
+      const btns = document.querySelectorAll(`#difficulty-group .seg-btn`);
+      for (let i = 0; i < btns.length; i++) {
+        btns[i].classList.toggle(`is-active`, btns[i].dataset.diff === appState.pendingDifficulty);
+      }
+    }
+
+    function updatePresetChips() {
+      const chips = document.querySelectorAll(`#size-presets .preset-chip`);
+      for (let i = 0; i < chips.length; i++) {
+        const s = parseInt(chips[i].dataset.size, 10);
+        chips[i].classList.toggle(`is-active`, s === appState.pendingSize);
+      }
+    }
+
+    function updateNotesButton() {
+      const btn = document.getElementById(`notes-toggle-btn`);
+      const lbl = document.getElementById(`keypad-mode-label`);
+      if (btn) {
+        btn.classList.toggle(`is-active`, appState.notesMode);
+        btn.setAttribute(`aria-pressed`, appState.notesMode ? `true` : `false`);
+      }
+      if (lbl) {
+        lbl.textContent = appState.notesMode
+          ? `Notizen-Modus aktiv · Kandidaten ein- oder ausblenden`
+          : `Touch-Nummernpad · Zahl eingeben (Tastatur & Pfeiltasten aktiv)`;
+      }
+    }
+
+    function updateUndoButton() {
+      const btn = document.getElementById(`undo-btn`);
+      if (btn) {
+        btn.disabled = appState.undoStack.length === 0;
+      }
+    }
+
+    function updateStats() {
+      if (!appState.userGrid || appState.userGrid.length === 0) return;
+      const n = appState.size;
+      const total = n * n;
+      let filled = 0;
+      for (let r = 0; r < n; r++) {
+        const row = appState.userGrid[r];
+        if (!row) continue;
+        for (let c = 0; c < n; c++) {
+          if (row[c] !== 0) filled++;
+        }
+      }
+      const timerEl = document.getElementById(`stat-timer`);
+      const progEl = document.getElementById(`stat-progress`);
+      const hintEl = document.getElementById(`stat-hints`);
+      if (timerEl) timerEl.textContent = formatTime(appState.elapsedSeconds);
+      if (progEl) progEl.textContent = `${filled} / ${total}`;
+      if (hintEl) hintEl.textContent = String(appState.hintsUsed);
+    }
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return `${m < 10 ? `0` + m : m}:${s < 10 ? `0` + s : s}`;
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerInterval = setInterval(function () {
+        if (appState.solvedNotified) return;
+        appState.elapsedSeconds++;
+        const timerEl = document.getElementById(`stat-timer`);
+        if (timerEl) timerEl.textContent = formatTime(appState.elapsedSeconds);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function showFeedback(text, kind) {
+      const box = document.getElementById(`game-feedback`);
+      if (!box) return;
+      box.className = `notice-box notice-${kind || `info`}`;
+      box.textContent = text;
+      box.style.display = `flex`;
+    }
+
+    function clearFeedback() {
+      const box = document.getElementById(`game-feedback`);
+      if (box) box.style.display = `none`;
+    }
+
+    function applyGridDimensions() {
+      const gridEl = document.getElementById(`sudoku-grid`);
+      const viewport = document.getElementById(`board-viewport`);
+      const zoomCtrl = document.getElementById(`zoom-controls`);
+      if (!gridEl || !viewport) return;
+
+      const n = appState.size;
+      if (zoomCtrl) {
+        zoomCtrl.classList.toggle(`is-visible`, n > 9);
+      }
+
+      const availW = Math.max(260, viewport.clientWidth - 20);
+      let boardPx;
+      if (appState.zoomMode === `fit`) {
+        if (n <= 9) {
+          boardPx = Math.min(540, availW);
+        } else {
+          const minCell = n <= 16 ? 26 : (n <= 25 ? 20 : 14);
+          boardPx = Math.max(Math.min(680, availW), n * minCell);
+        }
+      } else {
+        const factor = Number(appState.zoomMode) || 1.5;
+        boardPx = Math.max(availW, Math.round(520 * factor));
+      }
+
+      const cellPx = boardPx / n;
+      const fontSize = Math.max(8.5, Math.min(24, cellPx * 0.56));
+
+      gridEl.style.width = `${boardPx}px`;
+      gridEl.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+      gridEl.style.fontSize = `${fontSize.toFixed(1)}px`;
+    }
+
+    function renderGridCells() {
+      const gridEl = document.getElementById(`sudoku-grid`);
+      if (!gridEl || !appState.puzzle || appState.puzzle.length === 0 || !appState.userGrid || appState.userGrid.length === 0) return;
+
+      const n = appState.size;
+      const boxR = appState.boxR;
+      const boxC = appState.boxC;
+      const frag = document.createDocumentFragment();
+
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const btn = document.createElement(`button`);
+          btn.type = `button`;
+          btn.className = `sudoku-cell`;
+          btn.dataset.r = String(r);
+          btn.dataset.c = String(c);
+          btn.setAttribute(`role`, `gridcell`);
+          btn.setAttribute(`aria-label`, `Zeile ${r + 1}, Spalte ${c + 1}`);
+          btn.onclick = (function (rr, cc) {
+            return function () { selectCell(rr, cc); };
+          })(r, c);
+
+          if ((c + 1) % boxC === 0 && c < n - 1) btn.classList.add(`box-right`);
+          if ((r + 1) % boxR === 0 && r < n - 1) btn.classList.add(`box-bottom`);
+          if (c === n - 1) btn.classList.add(`last-col`);
+          if (r === n - 1) btn.classList.add(`last-row`);
+
+          const clue = appState.puzzle[r][c];
+          const val = appState.userGrid[r][c];
+          const key = `${r},${c}`;
+
+          if (clue !== 0) {
+            btn.classList.add(`is-clue`);
+            btn.textContent = String(clue);
+          } else if (val !== 0) {
+            btn.classList.add(appState.hintedCells[key] ? `is-hint` : `is-user`);
+            btn.textContent = String(val);
+            if (appState.checkedState[key] === `ok`) btn.classList.add(`is-checked-ok`);
+            if (appState.checkedState[key] === `err`) btn.classList.add(`is-checked-err`);
+          } else if (appState.notes[key] && appState.notes[key].length > 0) {
+            const noteArr = appState.notes[key];
+            if (n <= 9) {
+              const notesDiv = document.createElement(`div`);
+              notesDiv.className = `cell-notes`;
+              notesDiv.style.gridTemplateColumns = `repeat(${boxC}, 1fr)`;
+              notesDiv.style.fontSize = `0.42em`;
+              for (let v = 1; v <= n; v++) {
+                const sp = document.createElement(`span`);
+                sp.textContent = noteArr.indexOf(v) >= 0 ? String(v) : ``;
+                notesDiv.appendChild(sp);
+              }
+              btn.appendChild(notesDiv);
+            } else {
+              const compact = document.createElement(`span`);
+              compact.className = `cell-notes-compact`;
+              compact.textContent = noteArr.slice(0, 4).join(`·`) + (noteArr.length > 4 ? `…` : ``);
+              btn.appendChild(compact);
+            }
+          }
+
+          frag.appendChild(btn);
+        }
+      }
+
+      gridEl.innerHTML = ``;
+      gridEl.appendChild(frag);
+      applyGridDimensions();
+      renderGridHighlights();
+    }
+
+    function renderGridHighlights() {
+      const gridEl = document.getElementById(`sudoku-grid`);
+      if (!gridEl || !appState.userGrid || appState.userGrid.length === 0) return;
+      const cells = gridEl.children;
+      const sel = appState.selected;
+      const selVal = (sel && appState.userGrid[sel.r]) ? appState.userGrid[sel.r][sel.c] : 0;
+      const selBoxR = sel ? Math.floor(sel.r / appState.boxR) : -1;
+      const selBoxC = sel ? Math.floor(sel.c / appState.boxC) : -1;
+
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        const r = parseInt(cell.dataset.r, 10);
+        const c = parseInt(cell.dataset.c, 10);
+        const row = appState.userGrid[r];
+        const val = row ? row[c] : 0;
+        const bR = Math.floor(r / appState.boxR);
+        const bC = Math.floor(c / appState.boxC);
+
+        cell.classList.remove(`is-selected`, `is-peer`, `is-same-num`);
+        if (!sel) continue;
+
+        if (r === sel.r && c === sel.c) {
+          cell.classList.add(`is-selected`);
+        } else if (selVal !== 0 && val === selVal) {
+          cell.classList.add(`is-same-num`);
+        } else if (r === sel.r || c === sel.c || (bR === selBoxR && bC === selBoxC)) {
+          cell.classList.add(`is-peer`);
+        }
+      }
+    }
+
+    function renderKeypad() {
+      const pad = document.getElementById(`keypad-grid`);
+      if (!pad || !appState.userGrid || appState.userGrid.length === 0) return;
+      const n = appState.size;
+      pad.className = `keypad-grid ${n <= 9 ? `is-classic` : `is-large`}`;
+
+      // Count occurrences of each number on board
+      const counts = new Array(n + 1).fill(0);
+      for (let r = 0; r < n; r++) {
+        const row = appState.userGrid[r];
+        if (!row) continue;
+        for (let c = 0; c < n; c++) {
+          const v = row[c];
+          if (v >= 1 && v <= n) counts[v]++;
+        }
+      }
+
+      const frag = document.createDocumentFragment();
+      for (let v = 1; v <= n; v++) {
+        const btn = document.createElement(`button`);
+        btn.type = `button`;
+        btn.className = `key-btn`;
+        if (counts[v] >= n) btn.classList.add(`is-complete`);
+        btn.textContent = String(v);
+        btn.setAttribute(`aria-label`, `Zahl ${v}`);
+        btn.onclick = (function (num) {
+          return function () { inputNumber(num); };
+        })(v);
+        frag.appendChild(btn);
+      }
+
+      const eraseBtn = document.createElement(`button`);
+      eraseBtn.type = `button`;
+      eraseBtn.className = `key-btn is-erase`;
+      eraseBtn.textContent = `Leeren`;
+      eraseBtn.setAttribute(`aria-label`, `Feld leeren`);
+      eraseBtn.onclick = function () { inputNumber(0); };
+      frag.appendChild(eraseBtn);
+
+      pad.innerHTML = ``;
+      pad.appendChild(frag);
+    }
+
+    function renderAll() {
+      const badge = document.getElementById(`active-puzzle-badge`);
+      const diffLabel = (DIFFICULTIES[appState.difficulty] || DIFFICULTIES.mittel).label;
+      if (badge) {
+        badge.textContent = `${appState.size}×${appState.size} · ${diffLabel} · ${appState.boxR}×${appState.boxC}-Blöcke`;
+      }
+      updateDifficultyButtons();
+      updatePresetChips();
+      updateNotesButton();
+      updateUndoButton();
+      updateStats();
+      renderGridCells();
+      renderKeypad();
+    }
+
+    // Keyboard Support (Arrow navigation + multi-digit input for N > 9 + Undo + Notes)
+    function handleGlobalKeydown(e) {
+      const tag = document.activeElement ? document.activeElement.tagName : ``;
+      if (tag === `INPUT` || tag === `TEXTAREA`) return;
+
+      const warnModal = document.getElementById(`large-warning-modal`);
+      const wsModal = document.getElementById(`worksheet-modal`);
+      if ((warnModal && warnModal.classList.contains(`is-open`)) || (wsModal && wsModal.classList.contains(`is-open`))) {
+        if (e.key === `Escape`) {
+          closeLargeWarningModal();
+          closeWorksheetModal();
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === `z`) {
+        e.preventDefault();
+        undoMove();
+        return;
+      }
+
+      if (e.key.toLowerCase() === `n`) {
+        toggleNotesMode();
+        return;
+      }
+
+      const n = appState.size;
+      if (e.key === `ArrowUp` || e.key === `ArrowDown` || e.key === `ArrowLeft` || e.key === `ArrowRight`) {
+        e.preventDefault();
+        let r = appState.selected ? appState.selected.r : 0;
+        let c = appState.selected ? appState.selected.c : 0;
+        if (e.key === `ArrowUp`) r = (r - 1 + n) % n;
+        if (e.key === `ArrowDown`) r = (r + 1) % n;
+        if (e.key === `ArrowLeft`) c = (c - 1 + n) % n;
+        if (e.key === `ArrowRight`) c = (c + 1) % n;
+        selectCell(r, c);
+        return;
+      }
+
+      if (e.key === `Backspace` || e.key === `Delete` || e.key === `0`) {
+        e.preventDefault();
+        keyBuffer = ``;
+        inputNumber(0);
+        return;
+      }
+
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        if (n <= 9) {
+          const val = parseInt(e.key, 10);
+          if (val >= 1 && val <= n) inputNumber(val);
+        } else {
+          // Multi-digit buffered entry for large boards (10..64)
+          clearTimeout(keyBufferTimeout);
+          keyBuffer += e.key;
+          const candidate = parseInt(keyBuffer, 10);
+          if (candidate >= 1 && candidate <= n) {
+            // If appending another digit could still be <= n, wait briefly; otherwise apply immediately
+            if (candidate * 10 <= n) {
+              keyBufferTimeout = setTimeout(function () {
+                const num = parseInt(keyBuffer, 10);
+                keyBuffer = ``;
+                if (num >= 1 && num <= n) inputNumber(num);
+              }, 480);
+            } else {
+              keyBuffer = ``;
+              inputNumber(candidate);
+            }
+          } else {
+            keyBuffer = e.key;
+            const single = parseInt(keyBuffer, 10);
+            if (single >= 1 && single <= n) {
+              keyBufferTimeout = setTimeout(function () {
+                const num = parseInt(keyBuffer, 10);
+                keyBuffer = ``;
+                if (num >= 1 && num <= n) inputNumber(num);
+              }, 480);
+            } else {
+              keyBuffer = ``;
+            }
+          }
+        }
+      }
+    }
+
+    // State Persistence via notebookAppApi
+    function buildSerializableState() {
+      return {
+        size: appState.size,
+        boxR: appState.boxR,
+        boxC: appState.boxC,
+        difficulty: appState.difficulty,
+        puzzle: appState.puzzle,
+        solution: appState.solution,
+        userGrid: appState.userGrid,
+        hintedCells: appState.hintedCells,
+        checkedState: appState.checkedState,
+        notes: appState.notes,
+        hintsUsed: appState.hintsUsed,
+        elapsedSeconds: appState.elapsedSeconds,
+        wsTitle: appState.wsTitle,
+        wsName: appState.wsName,
+        wsDate: appState.wsDate,
+        solvedNotified: appState.solvedNotified
+      };
+    }
+
+    function scheduleSaveState() {
+      clearTimeout(saveDebounceTimer);
+      saveDebounceTimer = setTimeout(function () {
+        if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === `function`) {
+          window.notebookAppApi.setAppState(buildSerializableState()).catch(function () {});
+        }
+      }, 250);
+    }
+
+    function restoreFromSaved(saved) {
+      if (!saved || !Array.isArray(saved.puzzle) || !Array.isArray(saved.solution) || !saved.size) {
+        return false;
+      }
+      const dims = getSubgridDimensions(saved.size);
+      if (!dims) return false;
+      if (saved.puzzle.length !== saved.size || saved.solution.length !== saved.size) return false;
+
+      appState.size = saved.size;
+      appState.pendingSize = saved.size;
+      appState.boxR = dims.r;
+      appState.boxC = dims.c;
+      appState.difficulty = DIFFICULTIES[saved.difficulty] ? saved.difficulty : `mittel`;
+      appState.pendingDifficulty = appState.difficulty;
+      appState.puzzle = saved.puzzle;
+      appState.solution = saved.solution;
+      appState.userGrid = Array.isArray(saved.userGrid) ? saved.userGrid : saved.puzzle.map(function (r) { return r.slice(); });
+      appState.hintedCells = saved.hintedCells || {};
+      appState.checkedState = saved.checkedState || {};
+      appState.notes = saved.notes || {};
+      appState.hintsUsed = saved.hintsUsed || 0;
+      appState.elapsedSeconds = saved.elapsedSeconds || 0;
+      appState.wsTitle = saved.wsTitle || `Sudoku-Übungsblatt`;
+      appState.wsName = saved.wsName || ``;
+      appState.wsDate = saved.wsDate !== undefined ? saved.wsDate : `17.11.2026`;
+      appState.solvedNotified = Boolean(saved.solvedNotified);
+
+      const input = document.getElementById(`custom-size-input`);
+      if (input) input.value = String(appState.size);
+      validateSizeInput(appState.size);
+      return true;
+    }
+
+    async function initApp() {
+      document.addEventListener(`keydown`, handleGlobalKeydown);
+      window.addEventListener(`resize`, function () { applyGridDimensions(); });
+
+      // Ensure immediate default puzzle before async state check so DOM & handlers never see empty arrays
+      validateSizeInput(9);
+      buildAndStartPuzzle(9, `mittel`);
+
+      let restored = false;
+      if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+        try {
+          const saved = await window.notebookAppApi.getAppState();
+          restored = restoreFromSaved(saved);
+        } catch (err) {
+          restored = false;
+        }
+      }
+
+      if (restored) {
+        renderAll();
+        if (appState.solvedNotified) stopTimer();
+      }
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
